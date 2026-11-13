@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ZeekGlare — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#03050c;--bg1:#070b18;--bg2:#0b1022;--bg3:#0f162c;--bg4:#141d38;
+  --b1:#1d2b4c;--b2:#273a62;--b3:#324878;
+  --accent:#6366f1;--accent2:#818cf8;
+  --red:#ef4444;--red2:#f87171;
+  --green:#22c55e;--green2:#4ade80;
+  --amber:#f59e0b;--amber2:#fbbf24;
+  --t1:#e2e8f8;--t2:#8ea4c8;--t3:#4a6088;--t4:#283a58;
+  --r:7px;--trans:.16s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg0);color:var(--t1);font-family:'Inter',sans-serif;font-size:13px;overflow:hidden}
+a{text-decoration:none;color:var(--accent2)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* ── Shell ── */
+#shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:220px;flex-shrink:0;background:var(--bg1);
+  border-right:1px solid var(--b1);display:flex;
+  flex-direction:column;overflow:hidden;
+}
+#sb-logo{
+  padding:18px 16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;
+  display:flex;align-items:center;gap:10px;
+}
+.sb-logo-icon{font-size:20px}
+.sb-logo-title{font-size:14px;font-weight:700;color:var(--t1)}
+.sb-logo-sub{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+#sb-user{
+  padding:10px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;
+  background:var(--bg2);font-size:11px;color:var(--t3);
+}
+.sb-user-name{font-weight:600;color:var(--accent2)}
+.sb-user-role{font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(99,102,241,.12);color:var(--accent2);border:1px solid rgba(99,102,241,.2);margin-left:4px}
+#sb-nav{flex:1;overflow-y:auto;padding:8px 6px}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;
+  border-radius:6px;cursor:pointer;font-size:12px;color:var(--t2);
+  transition:all var(--trans);margin-bottom:2px;border:1px solid transparent;
+  user-select:none;
+}
+.nav-item:hover{background:var(--bg3);color:var(--t1)}
+.nav-item.active{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.25);color:var(--accent2)}
+.nav-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.nav-sep{height:1px;background:var(--b1);margin:6px 4px}
+#sb-footer{padding:12px 14px;border-top:1px solid var(--b1);flex-shrink:0}
+.sb-footer-btn{
+  display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:6px;
+  background:none;border:1px solid var(--b1);color:var(--t3);font-size:11px;
+  cursor:pointer;width:100%;font-family:inherit;transition:all var(--trans);
+}
+.sb-footer-btn:hover{border-color:var(--b2);color:var(--t1);background:var(--bg3)}
+
+/* ── Main content ── */
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.panel{display:none;flex:1;flex-direction:column;min-height:0}
+.panel.active{display:flex;animation:panelIn .3s cubic-bezier(.22,1,.36,1)}
+@keyframes panelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.panel-head{
+  padding:18px 24px 14px;border-bottom:1px solid var(--b1);
+  background:var(--bg1);flex-shrink:0;
+  display:flex;align-items:center;gap:10px;
+}
+.panel-title{font-size:16px;font-weight:700;color:var(--t1);flex:1}
+.panel-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.panel-body{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── Stat cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:14px 16px;position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s,border-color .2s;cursor:default;
+}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3);border-color:var(--card-accent,var(--accent))}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-accent,var(--accent))}
+.stat-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--card-accent,var(--accent)),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.stat-card:hover::after{opacity:.04}
+.stat-val{font-size:28px;font-weight:700;color:var(--t1);line-height:1;font-variant-numeric:tabular-nums}
+.stat-val.loading{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:skel 1.5s ease infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;border-radius:4px}
+@keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.stat-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-top:5px}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;transition:all var(--trans);font-family:inherit;border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:#4f52d1}
+.btn-outline{background:transparent;border-color:var(--b2);color:var(--t2)}
+.btn-outline:hover{border-color:var(--b3);color:var(--t1);background:var(--bg3)}
+.btn-danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-xs{padding:2px 7px;font-size:10.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── Tables ── */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.tbl-head{
+  padding:10px 16px;border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;gap:8px;background:var(--bg1);
+}
+.tbl-title{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;flex:1}
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;border-bottom:1px solid var(--b1);text-align:left;white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid rgba(29,43,76,.4);font-size:12px;color:var(--t2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.badge-active{background:rgba(34,197,94,.12);color:var(--green2);border:1px solid rgba(34,197,94,.2)}
+.badge-suspended{background:rgba(245,158,11,.1);color:var(--amber2);border:1px solid rgba(245,158,11,.2)}
+.badge-disabled{background:rgba(74,82,112,.15);color:var(--t3);border:1px solid var(--b1)}
+.badge-admin{background:rgba(99,102,241,.12);color:var(--accent2);border:1px solid rgba(99,102,241,.2)}
+.badge-user{background:var(--bg3);color:var(--t3);border:1px solid var(--b1)}
+
+/* ── Modal ── */
+#modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+#modal-bg.open{display:flex}
+.modal{
+  background:var(--bg2);border:1px solid var(--b2);border-radius:10px;
+  width:100%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;
+  overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+.modal-head{display:flex;align-items:center;gap:8px;padding:15px 18px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.modal-title{font-size:14px;font-weight:700;color:var(--t1);flex:1}
+.modal-close{background:none;border:none;color:var(--t3);font-size:17px;cursor:pointer;padding:3px 5px;border-radius:4px;font-family:inherit;line-height:1}
+.modal-close:hover{color:var(--t1);background:var(--bg4)}
+.modal-body{flex:1;overflow-y:auto;padding:16px 18px}
+.modal-footer{padding:12px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+/* ── Form fields ── */
+.form-field{margin-bottom:13px}
+.form-label{display:block;font-size:10.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{
+  width:100%;padding:8px 11px;background:var(--bg3);
+  border:1px solid var(--b1);border-radius:var(--r);
+  color:var(--t1);font-size:12.5px;font-family:inherit;outline:none;
+  transition:border-color var(--trans);
+}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--t4)}
+select.form-input option{background:var(--bg3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-hint{font-size:10.5px;color:var(--t4);margin-top:4px}
+
+/* ── Permissions grid ── */
+.perm-search{
+  width:100%;padding:7px 10px;background:var(--bg3);
+  border:1px solid var(--b1);border-radius:var(--r);
+  color:var(--t1);font-size:12px;font-family:inherit;outline:none;
+  margin-bottom:10px;transition:border-color var(--trans);
+}
+.perm-search:focus{border-color:var(--accent)}
+.perm-grid{display:flex;flex-direction:column;gap:4px}
+.perm-app-group{margin-bottom:10px}
+.perm-app-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t4);padding:5px 4px 4px;display:flex;align-items:center;gap:5px}
+.perm-app-label::after{content:'';flex:1;height:1px;background:var(--b1)}
+.perm-row{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-radius:6px;border:1px solid transparent;cursor:pointer;
+  transition:all var(--trans);user-select:none;
+}
+.perm-row:hover{background:var(--bg3);border-color:var(--b1)}
+.perm-row.enabled{background:rgba(99,102,241,.07);border-color:rgba(99,102,241,.2)}
+.perm-check{
+  width:16px;height:16px;border-radius:4px;border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:transparent;flex-shrink:0;transition:all .12s;background:var(--bg3);
+}
+.perm-row.enabled .perm-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.perm-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.perm-label{font-size:12px;color:var(--t2);flex:1}
+.perm-row.enabled .perm-label{color:var(--t1)}
+.perm-app-tag{font-size:9px;padding:1px 5px;border-radius:4px;background:var(--bg4);color:var(--t4);white-space:nowrap}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:600;
+  background:var(--bg3);border:1px solid var(--b2);
+  padding:10px 15px;border-radius:var(--r);font-size:12px;color:var(--t1);
+  transform:translateY(14px);opacity:0;transition:.2s;pointer-events:none;
+  max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.08);color:var(--green2)}
+#toast.err{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:var(--red2)}
+
+/* ── Audit log ── */
+.log-row td:first-child{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--t4);white-space:nowrap}
+.log-action{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)}
+.log-details{font-size:11.5px;color:var(--t2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-action.login_success,.log-action.user_created,.log-action.permissions_ok{color:var(--green2)}
+.log-action.login_failed,.log-action.login_blocked{color:var(--red2)}
+.log-action.admin_user_deleted,.log-action.admin_session_killed{color:var(--amber2)}
+
+/* ── Admin Action Buttons ── */
+.admin-action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  color:var(--t2);font-size:11px;font-weight:500;cursor:pointer;
+  transition:all .2s cubic-bezier(.22,1,.36,1);font-family:inherit;
+}
+.admin-action-btn:hover{
+  background:var(--bg3);border-color:var(--accent);color:var(--t1);
+  transform:translateY(-2px);box-shadow:0 4px 16px rgba(99,102,241,.15);
+}
+/* ── Sidebar Active Indicator ── */
+.nav-item{position:relative}
+.nav-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 3px 3px 0}
+/* ── Misc ── */
+.empty-row td{text-align:center;padding:28px;color:var(--t4);font-style:italic}
+.loader{width:18px;height:18px;border:2px solid var(--b2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--r);padding:10px 13px;font-size:12px;color:var(--red2);margin-bottom:12px;display:none}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+/* ── Gauge / Meter ── */
+.gauge-ring{position:relative;width:90px;height:90px;display:inline-flex;align-items:center;justify-content:center}
+.gauge-ring svg{transform:rotate(-90deg);width:90px;height:90px}
+.gauge-ring circle{fill:none;stroke-width:7;stroke-linecap:round}
+.gauge-ring .bg{stroke:var(--b1)}
+.gauge-ring .fg{transition:stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)}
+.gauge-val{position:absolute;font-size:18px;font-weight:700;color:var(--t1)}
+.gauge-lbl{font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;text-align:center}
+.health-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .2s}
+.health-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.proc-bar{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px}
+.proc-bar-fill{height:6px;border-radius:3px;transition:width .4s}
+.threat-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;transition:all .2s}
+.threat-card:hover{border-color:var(--red);box-shadow:0 4px 16px rgba(239,68,68,.1)}
+.threat-ip{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--red2)}
+.threat-count{font-size:22px;font-weight:700;color:var(--t1)}
+.ann-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600}
+.ann-badge.info{background:rgba(99,102,241,.12);color:var(--accent2);border:1px solid rgba(99,102,241,.2)}
+.ann-badge.warning{background:rgba(245,158,11,.1);color:var(--amber2);border:1px solid rgba(245,158,11,.2)}
+.ann-badge.critical{background:rgba(239,68,68,.1);color:var(--red2);border:1px solid rgba(239,68,68,.2)}
+.bulk-check{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+.ann-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;transition:all .2s}
+.ann-item:hover{border-color:var(--b2)}
+.ann-item .ann-msg{flex:1;font-size:12px;color:var(--t1)}
+.ann-item .ann-meta{font-size:10px;color:var(--t4);white-space:nowrap}
+
+/* ── Responsive ── */
+@media(max-width:991px){
+  #sidebar{width:60px}
+  #sidebar .nav-label,#sidebar .sb-logo-title,#sidebar .sb-logo-sub,
+  #sidebar .sb-user-name,#sidebar .sb-user-role,#sidebar .sb-footer-btn span{display:none}
+  .nav-item{justify-content:center;padding:8px 0}
+  #sb-logo{justify-content:center;padding:14px 8px}
+  #sb-user{display:none}
+  .sb-footer-btn{justify-content:center}
+}
+@media(max-width:767px){
+  #shell{flex-direction:column}
+  #sidebar{width:100%!important;flex-direction:row;border-right:none;border-bottom:1px solid var(--b1);overflow-x:auto}
+  #sb-logo{display:none}
+  #sb-user{display:none}
+  #sb-nav{display:flex;flex-direction:row;padding:4px;gap:2px;overflow-x:auto}
+  .nav-item{white-space:nowrap;padding:6px 10px;margin:0}
+  .nav-sep{display:none}
+  #sb-footer{border-top:none;padding:4px}
+  .sb-footer-btn{padding:6px 10px}
+  .panel-body{padding:12px}
+  .panel-head{padding:12px 14px}
+  .stat-card{min-width:120px}
+  .admin-action-btn{min-width:unset;padding:10px 8px;font-size:11px}
+  .nav-item.active::before{display:none}
+  .nav-item.active::after{content:'';position:absolute;bottom:0;left:25%;right:25%;height:2px;background:var(--accent);border-radius:2px 2px 0 0}
+}
+@media(max-width:575px){
+  .stat-card{min-width:100px;padding:10px}
+  .tbl-wrap{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sb-logo">
+      <div class="sb-logo-icon">🐾</div>
+      <div>
+        <div class="sb-logo-title">ZeekGlare</div>
+        <div class="sb-logo-sub">Admin Console</div>
+      </div>
+    </div>
+    <div id="sb-user">
+      Signed in as <span class="sb-user-name" id="sb-username">—</span>
+      <span class="sb-user-role">admin</span>
+    </div>
+    <nav id="sb-nav">
+      <div class="nav-item active" data-panel="overview">
+        <span class="nav-icon">📊</span> Overview
+      </div>
+      <div class="nav-item" data-panel="users">
+        <span class="nav-icon">👥</span> Users
+      </div>
+      <div class="nav-item" data-panel="permissions">
+        <span class="nav-icon">🔑</span> Permissions
+      </div>
+      <div class="nav-item" data-panel="system-health">
+        <span class="nav-icon">💻</span> <span class="nav-label">System Health</span>
+      </div>
+      <div class="nav-item" data-panel="security">
+        <span class="nav-icon">🛡️</span> <span class="nav-label">Security</span>
+      </div>
+      <div class="nav-item" data-panel="announcements">
+        <span class="nav-icon">📢</span> <span class="nav-label">Announcements</span>
+      </div>
+      <div class="nav-item" data-panel="maintenance">
+        <span class="nav-icon">🛠️</span> <span class="nav-label">Maintenance Mode</span>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-item" data-panel="tasks">
+        <span class="nav-icon">⚙️</span> <span class="nav-label">Task Monitor</span>
+      </div>
+      <div class="nav-item" data-panel="sessions">
+        <span class="nav-icon">🔗</span> Active Sessions
+      </div>
+      <div class="nav-item" data-panel="intel-sessions">
+        <span class="nav-icon">🗂️</span> Intel Sessions
+      </div>
+      <div class="nav-item" data-panel="audit">
+        <span class="nav-icon">📋</span> Audit Logs
+      </div>
+      <div class="nav-item" data-panel="tools-update">
+        <span class="nav-icon">🔧</span> Tools Update
+      </div>
+      <div class="nav-item" data-panel="smtp">
+        <span class="nav-icon">✉️</span> <span class="nav-label">Email / SMTP</span>
+      </div>
+    </nav>
+    <div id="sb-footer">
+      <button class="sb-footer-btn" onclick="window.location='/'">
+        <span>←</span> Back to Platform
+      </button>
+      <button class="sb-footer-btn" onclick="logout()" style="margin-top:6px">
+        <span>⏻</span> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+
+    <!-- Overview -->
+    <div class="panel active" id="panel-overview">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Overview</div>
+          <div class="panel-sub">Platform health and usage at a glance</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadOverview()">⟳ Refresh</button>
+      </div>
+      <div class="panel-body">
+        <div class="stat-grid" id="overview-stats">
+          <div class="stat-card" style="--card-accent:var(--accent)">
+            <div class="stat-val" id="ov-total-users">—</div>
+            <div class="stat-lbl">Total Users</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--green)">
+            <div class="stat-val" id="ov-active-users">—</div>
+            <div class="stat-lbl">Active Users</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--amber)">
+            <div class="stat-val" id="ov-suspended">—</div>
+            <div class="stat-lbl">Suspended</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--accent2)">
+            <div class="stat-val" id="ov-admins">—</div>
+            <div class="stat-lbl">Admins</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--green2)">
+            <div class="stat-val" id="ov-sessions">—</div>
+            <div class="stat-lbl">Active Sessions</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--red)">
+            <div class="stat-val" id="ov-failed">—</div>
+            <div class="stat-lbl">Failed Logins (1h)</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--t2)">
+            <div class="stat-val" id="ov-audit">—</div>
+            <div class="stat-lbl">Audit Events Today</div>
+          </div>
+          <div class="stat-card" style="--card-accent:var(--accent)">
+            <div class="stat-val" id="ov-modules">—</div>
+            <div class="stat-lbl">Platform Modules</div>
+          </div>
+        </div>
+        <!-- System Pulse Visualization -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">System Pulse</div>
+            <canvas id="admin-pulse" width="400" height="80" style="width:100%;height:80px;border-radius:4px"></canvas>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Activity Timeline (24h)</div>
+            <canvas id="admin-activity" width="400" height="80" style="width:100%;height:80px;border-radius:4px"></canvas>
+          </div>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:14px">
+          <button class="admin-action-btn" onclick="switchPanel('users')">
+            <span style="font-size:18px">👥</span>
+            <span>Manage Users</span>
+          </button>
+          <button class="admin-action-btn" onclick="switchPanel('permissions')">
+            <span style="font-size:18px">🔑</span>
+            <span>Permissions</span>
+          </button>
+          <button class="admin-action-btn" onclick="switchPanel('tasks')">
+            <span style="font-size:18px">⚙️</span>
+            <span>Task Monitor</span>
+          </button>
+          <button class="admin-action-btn" onclick="switchPanel('audit')">
+            <span style="font-size:18px">📋</span>
+            <span>Audit Logs</span>
+          </button>
+          <button class="admin-action-btn" onclick="switchPanel('tools-update')">
+            <span style="font-size:18px">🔧</span>
+            <span>Update Tools</span>
+          </button>
+          <button class="admin-action-btn" onclick="window.location='/'">
+            <span style="font-size:18px">🌐</span>
+            <span>Platform</span>
+          </button>
+        </div>
+
+        <div style="margin-top:14px;padding:12px 16px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;color:var(--t3)">
+          <strong style="color:var(--amber2)">⚠ Security Reminder:</strong>
+          Change the default admin password. All user actions are logged in the Audit Log.
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="panel" id="panel-users">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">User Management</div>
+          <div class="panel-sub">Create, update, suspend, and delete user accounts</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateUser()">+ New User</button>
+      </div>
+      <div class="panel-body">
+        <div class="err-box" id="users-err"></div>
+        <div id="bulk-bar" style="display:none;margin-bottom:10px;padding:8px 12px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:var(--r);display:none;align-items:center;gap:8px;font-size:12px">
+          <span id="bulk-count" style="font-weight:600;color:var(--accent2)">0 selected</span>
+          <button class="btn btn-outline btn-xs" onclick="bulkAction('activate')">Activate</button>
+          <button class="btn btn-outline btn-xs" style="border-color:rgba(245,158,11,.3);color:var(--amber2)" onclick="bulkAction('suspend')">Suspend</button>
+          <button class="btn btn-danger btn-xs" onclick="bulkAction('delete')">Delete</button>
+          <span style="flex:1"></span>
+          <button class="btn btn-outline btn-xs" onclick="clearBulk()">Clear</button>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head">
+            <span class="tbl-title">All Users</span>
+            <button class="btn btn-outline btn-xs" onclick="loadUsers()">⟳</button>
+          </div>
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th style="width:30px"><input type="checkbox" class="bulk-check" id="bulk-all" onchange="toggleBulkAll(this)"></th>
+                <th>ID</th><th>Username</th><th>Email</th>
+                <th>Role</th><th>Status</th><th>Last Login</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" class="empty-row"><div class="loader"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permissions -->
+    <div class="panel" id="panel-permissions">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Tool Permissions</div>
+          <div class="panel-sub">Control which platform modules each user can access</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <label style="font-size:11px;color:var(--t3);font-weight:600;white-space:nowrap">Select User:</label>
+          <select id="perm-user-select" class="form-input" style="max-width:220px;padding:6px 10px" onchange="loadUserPermissions()">
+            <option value="">— Select a user —</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="savePermissions()">Save Permissions</button>
+          <button class="btn btn-outline btn-sm" onclick="selectAllModules()">Select All</button>
+          <button class="btn btn-outline btn-sm" onclick="clearAllModules()">Clear All</button>
+        </div>
+        <div id="perm-user-info" style="display:none;margin-bottom:14px;padding:10px 14px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px">
+          <strong id="perm-info-name" style="color:var(--accent2)"></strong>
+          <span id="perm-info-count" style="color:var(--t3);margin-left:8px"></span>
+        </div>
+        <input class="perm-search" id="perm-search" placeholder="Filter modules…" oninput="filterModules()" />
+        <div id="perm-grid" class="perm-grid">
+          <div style="color:var(--t4);font-size:12px;padding:20px;text-align:center">Select a user to manage their permissions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="panel" id="panel-system-health">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">System Health</div>
+          <div class="panel-sub">Real-time server resource monitoring</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="sh-hostname" style="font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace"></span>
+          <button class="btn btn-outline btn-sm" onclick="loadSystemHealth()">⟳ Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px" id="sh-gauges">
+          <div class="health-card"><div class="gauge-ring" id="sh-cpu-gauge"></div><div class="gauge-lbl">CPU</div></div>
+          <div class="health-card"><div class="gauge-ring" id="sh-mem-gauge"></div><div class="gauge-lbl">Memory</div></div>
+          <div class="health-card"><div class="gauge-ring" id="sh-disk-gauge"></div><div class="gauge-lbl">Disk</div></div>
+          <div class="health-card" style="justify-content:center">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Uptime</div>
+            <div id="sh-uptime" style="font-size:20px;font-weight:700;color:var(--t1)">--</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Network I/O</div>
+            <div style="display:flex;gap:20px">
+              <div><div style="font-size:9px;color:var(--t4)">SENT</div><div id="sh-net-sent" style="font-size:16px;font-weight:700;color:var(--green2)">--</div></div>
+              <div><div style="font-size:9px;color:var(--t4)">RECV</div><div id="sh-net-recv" style="font-size:16px;font-weight:700;color:var(--accent2)">--</div></div>
+            </div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">System Info</div>
+            <div id="sh-sysinfo" style="font-size:11px;color:var(--t2);line-height:1.7"></div>
+          </div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-top:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Top Processes (by CPU)</div>
+          <div id="sh-procs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Analytics -->
+    <div class="panel" id="panel-security">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Security Analytics</div>
+          <div class="panel-sub">Login attempts, threat detection, and access patterns (7 days)</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadSecurityAnalytics()">⟳ Refresh</button>
+      </div>
+      <div class="panel-body">
+        <div class="stat-grid" id="sec-stats">
+          <div class="stat-card" style="--card-accent:var(--green)"><div class="stat-val" id="sec-success">--</div><div class="stat-lbl">Successful Logins</div></div>
+          <div class="stat-card" style="--card-accent:var(--red)"><div class="stat-val" id="sec-failed">--</div><div class="stat-lbl">Failed Logins</div></div>
+          <div class="stat-card" style="--card-accent:var(--amber)"><div class="stat-val" id="sec-unique-ips">--</div><div class="stat-lbl">Unique Attacker IPs</div></div>
+          <div class="stat-card" style="--card-accent:var(--accent)"><div class="stat-val" id="sec-targeted">--</div><div class="stat-lbl">Targeted Accounts</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Login Heatmap (24h)</div>
+            <canvas id="sec-hourly-chart" width="400" height="80" style="width:100%;height:80px"></canvas>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Daily Trend (7d)</div>
+            <canvas id="sec-daily-chart" width="400" height="80" style="width:100%;height:80px"></canvas>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Top Attacker IPs</div>
+            <div id="sec-top-ips"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Recent Failed Attempts</div>
+            <div id="sec-recent-failed" style="max-height:260px;overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Maintenance Mode -->
+    <div class="panel" id="panel-maintenance">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Maintenance Mode</div>
+          <div class="panel-sub">Lock non-admin users out of the platform and show them a custom message</div>
+        </div>
+        <div id="maint-state-badge" style="display:none;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:rgba(245,158,11,.12);color:var(--amber2);border:1px solid rgba(245,158,11,.3)">● ACTIVE</div>
+      </div>
+      <div class="panel-body">
+        <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:18px 20px;max-width:640px">
+          <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
+            <div style="font-size:28px;line-height:1">🛠️</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Enable maintenance mode</div>
+              <div style="font-size:11.5px;color:var(--t3);line-height:1.55">When active, only administrators can log in and use the platform. All other users see a lockout screen with the message below. Your active sessions won't be affected.</div>
+            </div>
+            <label class="switch" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">
+              <input type="checkbox" id="maint-toggle" style="opacity:0;width:0;height:0" onchange="maintToggleChanged()">
+              <span id="maint-slider" style="position:absolute;cursor:pointer;inset:0;background:var(--bg4);border:1px solid var(--b2);border-radius:24px;transition:.2s"></span>
+            </label>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">Lockout message (shown to users)</label>
+            <textarea id="maint-message" class="form-input" rows="3" placeholder="Platform is undergoing maintenance. Please try again shortly." style="resize:vertical;width:100%"></textarea>
+          </div>
+
+          <div id="maint-info" style="display:none;margin-top:10px;padding:9px 12px;background:var(--bg1);border:1px solid var(--b1);border-radius:var(--r);font-size:11px;color:var(--t3);line-height:1.6"></div>
+
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="btn btn-primary btn-sm" onclick="saveMaintenance()">Save</button>
+            <button class="btn btn-outline btn-sm" onclick="loadMaintenance()">Reload</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:12px 16px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);font-size:11.5px;color:var(--t3);max-width:640px;line-height:1.6">
+          <strong style="color:var(--amber2)">⚠ Note:</strong>
+          Maintenance mode is enforced client-side: users with open tabs will be locked out within 30 seconds. APIs remain accessible so in-flight scans finish cleanly. For hard cutoff, stop background services.
+        </div>
+      </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="panel" id="panel-announcements">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Announcements</div>
+          <div class="panel-sub">Broadcast messages to all dashboard users</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateAnnouncement()">+ New Announcement</button>
+      </div>
+      <div class="panel-body">
+        <div id="ann-list">
+          <div style="color:var(--t4);font-size:12px;padding:20px;text-align:center">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks -->
+    <div class="panel" id="panel-tasks">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Task Monitor</div>
+          <div class="panel-sub">All running and completed scans across the platform, per user</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="task-user-filter" class="form-input" style="max-width:160px;padding:5px 10px;font-size:11px" placeholder="Filter by user…" oninput="renderTasksFiltered()">
+          <select id="task-status-filter" class="form-input" style="max-width:120px;padding:5px 10px;font-size:11px" onchange="renderTasksFiltered()">
+            <option value="">All</option>
+            <option value="running">Running</option>
+            <option value="done">Done</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadTasks()">⟳</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div id="tasks-user-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div class="tbl-wrap">
+          <table id="tasks-table">
+            <thead>
+              <tr><th>User</th><th>Label</th><th>Target</th><th>Source</th><th>Status</th><th>Findings</th><th>Elapsed</th></tr>
+            </thead>
+            <tbody id="tasks-tbody">
+              <tr><td colspan="7" class="empty-row">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions -->
+    <div class="panel" id="panel-sessions">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Active Sessions</div>
+          <div class="panel-sub">Users currently authenticated on the platform</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadSessions()">⟳</button>
+      </div>
+      <div class="panel-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>User</th><th>IP Address</th><th>App</th><th>Last Seen</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="sessions-tbody">
+              <tr><td colspan="5" class="empty-row"><div class="loader"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Intel Sessions -->
+    <div class="panel" id="panel-intel-sessions">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Intelligence Sessions</div>
+          <div class="panel-sub">All scan sessions across all users — only admin can view or delete</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadIntelSessions()">⟳ Refresh</button>
+      </div>
+      <div class="panel-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Owner</th><th>Type</th><th>Target</th><th>Name</th><th>Created</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="intel-sessions-tbody">
+              <tr><td colspan="6" class="empty-row"><div class="loader"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="panel" id="panel-audit">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Audit Logs</div>
+          <div class="panel-sub">Security events, login attempts, and admin actions</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="loadAudit()">⟳ Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="exportAuditLogs()">⬇ Export CSV</button>
+          <button class="btn btn-sm" onclick="clearAuditLogs()" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3)">🗑 Clear Logs</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <input id="audit-user-filter" class="form-input" style="max-width:180px;padding:6px 10px" placeholder="Filter by username…" oninput="loadAudit()">
+          <input id="audit-action-filter" class="form-input" style="max-width:180px;padding:6px 10px" placeholder="Filter by action…" oninput="loadAudit()">
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr>
+            </thead>
+            <tbody id="audit-tbody">
+              <tr><td colspan="5" class="empty-row"><div class="loader"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="audit-pagination" style="display:flex;gap:8px;margin-top:12px;align-items:center;font-size:11px;color:var(--t3)"></div>
+      </div>
+    </div>
+
+    <!-- Tools Update -->
+    <!-- SMTP / Email -->
+    <div class="panel" id="panel-smtp">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Email / SMTP Configuration</div>
+          <div class="panel-sub">Configure outbound email for password recovery and notifications</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadSmtpConfig()">⟳ Reload</button>
+      </div>
+      <div class="panel-body">
+        <div id="smtp-status" style="margin-bottom:16px;padding:11px 14px;border-radius:8px;font-size:12px;display:none"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:780px">
+          <div>
+            <label style="display:block;font-size:11px;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:600">SMTP Host</label>
+            <input id="smtp-host" class="form-input" placeholder="smtp.gmail.com" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:600">Port</label>
+            <input id="smtp-port" class="form-input" type="number" placeholder="587" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:600">Username</label>
+            <input id="smtp-user" class="form-input" placeholder="alerts@example.com" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:11px;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:600">Password / App Password</label>
+            <input id="smtp-pass" class="form-input" type="password" placeholder="••••••••" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="display:block;font-size:11px;color:var(--t3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px;font-weight:600">From Address</label>
+            <input id="smtp-from" class="form-input" placeholder="ZeekGlare &lt;no-reply@example.com&gt;" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t1);cursor:pointer">
+              <input type="checkbox" id="smtp-tls" checked> Use STARTTLS
+            </label>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="saveSmtpConfig()">💾 Save Configuration</button>
+          <button class="btn btn-outline" onclick="testSmtpConfig()">📨 Send Test Email</button>
+        </div>
+        <div style="margin-top:18px;padding:12px 14px;background:var(--bg1);border:1px solid var(--b1);border-radius:8px;font-size:11.5px;color:var(--t3);line-height:1.6">
+          <strong style="color:var(--t2)">ℹ Common providers:</strong><br>
+          Gmail: smtp.gmail.com:587 (use App Password, not account password) ·
+          Outlook: smtp-mail.outlook.com:587 ·
+          SendGrid: smtp.sendgrid.net:587 (user="apikey") ·
+          Mailgun: smtp.mailgun.org:587
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-tools-update">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Tools Update</div>
+          <div class="panel-sub">Check installation status and update security tools</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadToolsStatus()">⟳ Refresh</button>
+      </div>
+      <div class="panel-body">
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="updateAllTools()" id="tu-update-all-btn">⬆ Update All Installed</button>
+          <input id="tu-filter" class="form-input" style="max-width:200px;padding:6px 10px" placeholder="Filter tools…" oninput="tuFilter()">
+          <span id="tu-summary" style="font-size:11.5px;color:var(--t3);margin-left:4px"></span>
+        </div>
+
+        <div id="tu-log" style="display:none;background:var(--bg1);border:1px solid var(--b1);border-radius:8px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);max-height:220px;overflow-y:auto;margin-bottom:18px;white-space:pre-wrap;line-height:1.6"></div>
+
+        <div id="tu-grid" style="display:flex;flex-direction:column;gap:6px">
+          <div style="color:var(--t4);padding:24px 0;text-align:center"><div class="loader"></div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">New User</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="err-box" id="modal-err"></div>
+      <div id="modal-content"></div>
+    </div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let currentUser  = null;
+let allUsers     = [];
+let allModules   = [];
+let permModules  = {};   // module_id → enabled for selected user
+let auditPage    = 1;
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Get current user
+  const me = await api('/api/auth/me');
+  if (me.user) {
+    currentUser = me.user;
+    document.getElementById('sb-username').textContent = me.user.username;
+  }
+  // Sidebar nav
+  document.querySelectorAll('.nav-item[data-panel]').forEach(el => {
+    el.addEventListener('click', () => switchPanel(el.dataset.panel));
+  });
+  // Load initial data
+  loadOverview();
+  loadModules();
+});
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name)?.classList.add('active');
+  document.querySelector(`.nav-item[data-panel="${name}"]`)?.classList.add('active');
+  // Lazy-load panel data
+  if (name === 'users')           loadUsers();
+  if (name === 'system-health')   loadSystemHealth();
+  if (name === 'security')        loadSecurityAnalytics();
+  if (name === 'announcements')   loadAnnouncements();
+  if (name === 'maintenance')     loadMaintenance();
+  if (name === 'tasks')           loadTasks();
+  if (name === 'sessions')        loadSessions();
+  if (name === 'intel-sessions')  loadIntelSessions();
+  if (name === 'audit')           loadAudit();
+  if (name === 'permissions')     loadPermissionUsers();
+  if (name === 'tools-update')    loadToolsStatus();
+  if (name === 'smtp')            loadSmtpConfig();
+}
+
+// ── SMTP / Email config ──────────────────────────────────────────────────────
+async function loadSmtpConfig() {
+  const r = await api('/api/admin/smtp-config');
+  if (r.error) { toast(r.error, 'err'); return; }
+  document.getElementById('smtp-host').value = r.host || '';
+  document.getElementById('smtp-port').value = r.port || 587;
+  document.getElementById('smtp-user').value = r.user || '';
+  document.getElementById('smtp-pass').value = r.password === '••••••••' ? '••••••••' : '';
+  document.getElementById('smtp-from').value = r.from || '';
+  document.getElementById('smtp-tls').checked = r.tls !== false;
+  const sb = document.getElementById('smtp-status');
+  if (r.configured) {
+    sb.style.display = 'block';
+    sb.style.background = 'rgba(34,197,94,.1)';
+    sb.style.border = '1px solid rgba(34,197,94,.25)';
+    sb.style.color = '#4ade80';
+    sb.textContent = '✓ SMTP is configured. Password recovery emails will be delivered automatically.';
+  } else {
+    sb.style.display = 'block';
+    sb.style.background = 'rgba(245,158,11,.1)';
+    sb.style.border = '1px solid rgba(245,158,11,.25)';
+    sb.style.color = '#fbbf24';
+    sb.textContent = '⚠ SMTP not configured. Password recovery links will be logged to data/password_resets.log instead.';
+  }
+}
+
+async function saveSmtpConfig() {
+  const body = {
+    host: document.getElementById('smtp-host').value.trim(),
+    port: parseInt(document.getElementById('smtp-port').value) || 587,
+    user: document.getElementById('smtp-user').value.trim(),
+    password: document.getElementById('smtp-pass').value,
+    from: document.getElementById('smtp-from').value.trim(),
+    tls: document.getElementById('smtp-tls').checked,
+  };
+  if (!body.host) { toast('SMTP host required.', 'err'); return; }
+  const r = await api('/api/admin/smtp-config', 'POST', body);
+  if (r.ok) { toast('SMTP configuration saved.', 'ok'); loadSmtpConfig(); }
+  else toast(r.error || 'Failed to save.', 'err');
+}
+
+async function testSmtpConfig() {
+  const to = prompt('Send test email to:', currentUser?.email || '');
+  if (!to) return;
+  toast('Sending test email...', '');
+  const r = await api('/api/admin/smtp-test', 'POST', {to});
+  if (r.ok) toast(r.message || 'Test email sent.', 'ok');
+  else toast(r.error || 'Test failed.', 'err');
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(url, method='GET', body=null) {
+  const opts = { method, headers: {} };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  return r.json().catch(() => ({}));
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+}
+
+// ── Escape HTML ───────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+function fmtElapsed(sec) {
+  sec = Math.round(sec||0);
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec/60), s = sec%60;
+  return m < 60 ? m + 'm' + (s?s+'s':'') : Math.floor(m/60) + 'h' + (m%60?(m%60)+'m':'');
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+async function loadOverview() {
+  var statIds = ['ov-total-users','ov-active-users','ov-suspended','ov-admins','ov-sessions','ov-failed','ov-audit','ov-modules'];
+  statIds.forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.add('loading'); });
+  const d = await api('/api/admin/stats');
+  statIds.forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('loading'); });
+  if (!d) return;
+  document.getElementById('ov-total-users').textContent = d.total_users ?? '—';
+  document.getElementById('ov-active-users').textContent= d.active_users ?? '—';
+  document.getElementById('ov-suspended').textContent   = d.suspended_users ?? '—';
+  document.getElementById('ov-admins').textContent      = d.admin_count ?? '—';
+  document.getElementById('ov-sessions').textContent    = d.active_sessions ?? '—';
+  document.getElementById('ov-failed').textContent      = d.failed_logins_1h ?? '—';
+  document.getElementById('ov-audit').textContent       = d.audit_today ?? '—';
+  document.getElementById('ov-modules').textContent     = d.platform_modules ?? '—';
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  document.getElementById('users-tbody').innerHTML = '<tr><td colspan="7" class="empty-row"><div class="loader"></div></td></tr>';
+  allUsers = await api('/api/admin/users') || [];
+  const tbody = document.getElementById('users-tbody');
+  if (!allUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No users found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allUsers.map(u => `
+    <tr>
+      <td><input type="checkbox" class="bulk-check bulk-user-check" data-uid="${u.id}" onchange="updateBulkBar()"></td>
+      <td style="color:var(--t4);font-size:11px">${u.id}</td>
+      <td style="font-weight:600;color:var(--t1)">${esc(u.username)}</td>
+      <td style="color:var(--t3)">${esc(u.email)}</td>
+      <td><span class="badge badge-${u.role}">${esc(u.role)}</span></td>
+      <td><span class="badge badge-${u.status}">${esc(u.status)}</span></td>
+      <td style="font-size:11px;color:var(--t4)">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id})">Edit</button>
+          <button class="btn btn-outline btn-xs" onclick="openResetPw(${u.id},'${esc(u.username)}')">Pw</button>
+          <button class="btn btn-outline btn-xs" onclick="openPermissions(${u.id},'${esc(u.username)}')">Perms</button>
+          ${u.status === 'active'
+            ? `<button class="btn btn-outline btn-xs" onclick="setStatus(${u.id},'suspended','${esc(u.username)}')">Suspend</button>`
+            : `<button class="btn btn-outline btn-xs" onclick="setStatus(${u.id},'active','${esc(u.username)}')">Activate</button>`}
+          <button class="btn btn-danger btn-xs" onclick="deleteUser(${u.id},'${esc(u.username)}')">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  clearBulk();
+}
+
+async function setStatus(uid, status, username) {
+  if (!confirm(`Set user '${username}' to ${status}?`)) return;
+  const r = await api(`/api/admin/users/${uid}`, 'PATCH', {status});
+  if (r.ok) { toast(`✓ ${username} is now ${status}`, 'ok'); loadUsers(); }
+  else toast('Error: ' + (r.error || 'unknown'), 'err');
+}
+
+async function deleteUser(uid, username) {
+  if (!confirm(`Permanently delete user '${username}'? This cannot be undone.`)) return;
+  const r = await api(`/api/admin/users/${uid}`, 'DELETE');
+  if (r.ok) { toast(`✓ User '${username}' deleted`, 'ok'); loadUsers(); }
+  else toast('Error: ' + (r.error || 'unknown'), 'err');
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+function openModal(title, content, footerBtns) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-content').innerHTML = content;
+  document.getElementById('modal-footer').innerHTML  = footerBtns;
+  document.getElementById('modal-err').style.display = 'none';
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-bg')) return;
+  document.getElementById('modal-bg').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modal-bg').classList.remove('open'); });
+
+function showModalErr(msg) {
+  const el = document.getElementById('modal-err');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function openCreateUser() {
+  openModal('New User', `
+    <div class="form-row">
+      <div class="form-field"><label class="form-label">Username</label><input id="f-username" class="form-input" placeholder="john_doe"/></div>
+      <div class="form-field"><label class="form-label">Email</label><input id="f-email" class="form-input" type="email" placeholder="john@example.com"/></div>
+    </div>
+    <div class="form-field"><label class="form-label">Password</label><input id="f-password" class="form-input" type="password" placeholder="Min. 8 characters"/><div class="form-hint">User should change this after first login</div></div>
+    <div class="form-field"><label class="form-label">Role</label>
+      <select id="f-role" class="form-input"><option value="user">User</option><option value="admin">Admin</option></select>
+    </div>`,
+    `<button class="btn btn-outline" onclick="document.getElementById('modal-bg').classList.remove('open')">Cancel</button>
+     <button class="btn btn-primary" onclick="submitCreateUser()">Create User</button>`
+  );
+}
+
+async function submitCreateUser() {
+  const body = {
+    username: document.getElementById('f-username').value.trim(),
+    email:    document.getElementById('f-email').value.trim(),
+    password: document.getElementById('f-password').value,
+    role:     document.getElementById('f-role').value,
+  };
+  const r = await api('/api/admin/users', 'POST', body);
+  if (r.ok) {
+    document.getElementById('modal-bg').classList.remove('open');
+    toast(`✓ User '${body.username}' created`, 'ok');
+    loadUsers();
+  } else showModalErr(r.error || 'Failed to create user.');
+}
+
+function openEditUser(uid) {
+  const u = allUsers.find(x => x.id === uid);
+  if (!u) return;
+  openModal(`Edit — ${u.username}`, `
+    <div class="form-field"><label class="form-label">Email</label><input id="f-email" class="form-input" value="${esc(u.email)}"/></div>
+    <div class="form-field"><label class="form-label">Role</label>
+      <select id="f-role" class="form-input">
+        <option value="user" ${u.role==='user'?'selected':''}>User</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+      </select>
+    </div>
+    <div class="form-field"><label class="form-label">Status</label>
+      <select id="f-status" class="form-input">
+        <option value="active" ${u.status==='active'?'selected':''}>Active</option>
+        <option value="suspended" ${u.status==='suspended'?'selected':''}>Suspended</option>
+        <option value="disabled" ${u.status==='disabled'?'selected':''}>Disabled</option>
+      </select>
+    </div>`,
+    `<button class="btn btn-outline" onclick="document.getElementById('modal-bg').classList.remove('open')">Cancel</button>
+     <button class="btn btn-primary" onclick="submitEditUser(${uid})">Save Changes</button>`
+  );
+}
+
+async function submitEditUser(uid) {
+  const body = {
+    email:  document.getElementById('f-email').value.trim(),
+    role:   document.getElementById('f-role').value,
+    status: document.getElementById('f-status').value,
+  };
+  const r = await api(`/api/admin/users/${uid}`, 'PATCH', body);
+  if (r.ok) {
+    document.getElementById('modal-bg').classList.remove('open');
+    toast('✓ User updated', 'ok'); loadUsers();
+  } else showModalErr(r.error || 'Update failed.');
+}
+
+function openResetPw(uid, username) {
+  openModal(`Reset Password — ${username}`, `
+    <div class="form-field"><label class="form-label">New Password</label><input id="f-newpw" class="form-input" type="password" placeholder="Min. 8 characters"/></div>`,
+    `<button class="btn btn-outline" onclick="document.getElementById('modal-bg').classList.remove('open')">Cancel</button>
+     <button class="btn btn-primary" onclick="submitResetPw(${uid})">Reset Password</button>`
+  );
+}
+
+async function submitResetPw(uid) {
+  const pw = document.getElementById('f-newpw').value;
+  const r  = await api(`/api/admin/users/${uid}/reset-password`, 'POST', {password: pw});
+  if (r.ok) {
+    document.getElementById('modal-bg').classList.remove('open');
+    toast('✓ Password reset successfully', 'ok');
+  } else showModalErr(r.error || 'Reset failed.');
+}
+
+// ── Permissions ───────────────────────────────────────────────────────────────
+async function loadModules() {
+  allModules = await api('/api/admin/modules') || [];
+}
+
+async function loadPermissionUsers() {
+  const users = await api('/api/admin/users') || [];
+  const sel = document.getElementById('perm-user-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select a user —</option>' +
+    users.map(u => `<option value="${u.id}" ${u.id==cur?'selected':''}>${esc(u.username)} (${u.role})</option>`).join('');
+}
+
+async function loadUserPermissions() {
+  const uid = document.getElementById('perm-user-select').value;
+  if (!uid) {
+    document.getElementById('perm-grid').innerHTML = '<div style="color:var(--t4);font-size:12px;padding:20px;text-align:center">Select a user to manage their permissions</div>';
+    document.getElementById('perm-user-info').style.display = 'none';
+    return;
+  }
+  const d = await api(`/api/admin/users/${uid}/permissions`);
+  if (!d.modules) return;
+
+  // Build permModules map
+  permModules = {};
+  d.modules.forEach(m => { permModules[m.id] = m.enabled; });
+
+  const info = document.getElementById('perm-user-info');
+  info.style.display = 'block';
+  document.getElementById('perm-info-name').textContent = d.user.username;
+  const count = d.modules.filter(m => m.enabled).length;
+  document.getElementById('perm-info-count').textContent = `${count} / ${d.modules.length} modules enabled`;
+
+  renderPermGrid(d.modules);
+}
+
+function renderPermGrid(modules) {
+  const query = document.getElementById('perm-search').value.toLowerCase();
+  const filtered = query ? modules.filter(m => m.label.toLowerCase().includes(query) || m.app.includes(query)) : modules;
+
+  // Group by app
+  const groups = {};
+  filtered.forEach(m => {
+    if (!groups[m.app]) groups[m.app] = [];
+    groups[m.app].push(m);
+  });
+
+  const APP_LABELS = { zeekglare: 'ZeekGlare', xploiter: 'Xpl03tEr', misc: 'Misc Tools' };
+
+  const html = Object.entries(groups).map(([app, mods]) => `
+    <div class="perm-app-group">
+      <div class="perm-app-label">${APP_LABELS[app] || app}</div>
+      ${mods.map(m => `
+        <div class="perm-row ${permModules[m.id] ? 'enabled' : ''}" onclick="toggleModule('${m.id}',this)">
+          <div class="perm-check">${permModules[m.id] ? '✓' : ''}</div>
+          <div class="perm-icon">${m.icon||'📦'}</div>
+          <div class="perm-label">${esc(m.label)}</div>
+          <div class="perm-app-tag">${esc(m.id)}</div>
+        </div>`).join('')}
+    </div>`).join('');
+
+  document.getElementById('perm-grid').innerHTML = html || '<div style="color:var(--t4);font-size:12px;padding:20px;text-align:center">No modules match filter</div>';
+  updatePermCount();
+}
+
+function toggleModule(id, row) {
+  permModules[id] = !permModules[id];
+  row.classList.toggle('enabled', permModules[id]);
+  row.querySelector('.perm-check').textContent = permModules[id] ? '✓' : '';
+  updatePermCount();
+}
+
+function updatePermCount() {
+  const uid = document.getElementById('perm-user-select').value;
+  if (!uid) return;
+  const enabled = Object.values(permModules).filter(Boolean).length;
+  document.getElementById('perm-info-count').textContent = `${enabled} / ${allModules.length} modules enabled`;
+}
+
+function filterModules() {
+  if (!allModules.length) return;
+  const uid = document.getElementById('perm-user-select').value;
+  if (!uid) return;
+  renderPermGrid(allModules.map(m => ({...m, enabled: !!permModules[m.id]})));
+}
+
+function selectAllModules() {
+  Object.keys(permModules).forEach(k => permModules[k] = true);
+  allModules.forEach(m => permModules[m.id] = true);
+  renderPermGrid(allModules.map(m => ({...m, enabled: true})));
+}
+
+function clearAllModules() {
+  Object.keys(permModules).forEach(k => permModules[k] = false);
+  renderPermGrid(allModules.map(m => ({...m, enabled: false})));
+}
+
+async function savePermissions() {
+  const uid = document.getElementById('perm-user-select').value;
+  if (!uid) { toast('Select a user first', 'err'); return; }
+  const enabled = Object.entries(permModules).filter(([,v]) => v).map(([k]) => k);
+  const r = await api(`/api/admin/users/${uid}/permissions`, 'PUT', {modules: enabled});
+  if (r.ok) toast('✓ Permissions saved', 'ok');
+  else toast('Error saving permissions', 'err');
+}
+
+function openPermissions(uid, username) {
+  switchPanel('permissions');
+  const sel = document.getElementById('perm-user-select');
+  sel.value = uid;
+  loadPermissionUsers().then(() => { sel.value = uid; loadUserPermissions(); });
+}
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+let _allScans = [];
+
+async function loadTasks() {
+  const d = await api('/api/admin/tasks');
+  _allScans = d.scans || [];
+  renderTasksFiltered();
+}
+
+function renderTasksFiltered() {
+  const tbody   = document.getElementById('tasks-tbody');
+  const userF   = (document.getElementById('task-user-filter')?.value || '').toLowerCase();
+  const statusF = document.getElementById('task-status-filter')?.value || '';
+
+  let scans = _allScans;
+  if (userF)   scans = scans.filter(s => (s.username||'').toLowerCase().includes(userF));
+  if (statusF === 'running') scans = scans.filter(s => !s.done);
+  if (statusF === 'done')    scans = scans.filter(s => s.done);
+
+  if (!scans.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No tasks found.</td></tr>';
+    renderUserSummary(_allScans);
+    return;
+  }
+
+  const SRC_ICONS = {zeekglare:'🌐', xploiter:'⚡', misc:'🛠️'};
+  tbody.innerHTML = scans.map(s => {
+    const owner = s.username || '—';
+    const userColor = s.done ? 'var(--t3)' : 'var(--green)';
+    return `<tr>
+      <td><span style="font-weight:600;color:${userColor};font-size:11px">${esc(owner)}</span></td>
+      <td style="font-weight:600;color:var(--t1)">${esc(s.label)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)">${esc(s.target||'—')}</td>
+      <td>${SRC_ICONS[s.source]||''} ${esc(s.source)}</td>
+      <td>${s.done ? '<span class="badge badge-disabled">Done</span>' : '<span class="badge badge-active">● Running</span>'}</td>
+      <td style="font-weight:600;color:var(--amber2)">${s.findings}</td>
+      <td style="color:var(--t3)">${fmtElapsed(s.elapsed)}</td>
+    </tr>`;
+  }).join('');
+
+  renderUserSummary(_allScans);
+}
+
+function renderUserSummary(scans) {
+  const summary = document.getElementById('tasks-user-summary');
+  if (!summary) return;
+  // Group by username, count active
+  const byUser = {};
+  scans.forEach(s => {
+    const u = s.username || 'unknown';
+    if (!byUser[u]) byUser[u] = { active: 0, done: 0 };
+    s.done ? byUser[u].done++ : byUser[u].active++;
+  });
+  summary.innerHTML = Object.entries(byUser).map(([u, c]) =>
+    `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+      background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);font-size:11px;cursor:pointer"
+      onclick="document.getElementById('task-user-filter').value='${esc(u)}';renderTasksFiltered()">
+      <span style="font-weight:600;color:var(--t1)">${esc(u)}</span>
+      ${c.active ? `<span style="color:var(--green);font-weight:700">${c.active} running</span>` : ''}
+      ${c.done   ? `<span style="color:var(--t4)">${c.done} done</span>` : ''}
+    </span>`
+  ).join('');
+}
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const sessions = await api('/api/admin/sessions') || [];
+  const tbody = document.getElementById('sessions-tbody');
+  if (!sessions.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">No active sessions.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sessions.map(s => `
+    <tr>
+      <td style="font-weight:600;color:var(--t1)">${esc(s.username)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3)">${esc(s.ip_address)}</td>
+      <td><span class="badge badge-user">${esc(s.app_name)}</span></td>
+      <td style="font-size:11px;color:var(--t4)">${fmtDate(s.last_seen)}</td>
+      <td><button class="btn btn-danger btn-xs" onclick="killSession(${s.id},'${esc(s.username)}')">Terminate</button></td>
+    </tr>`).join('');
+}
+
+async function killSession(sid, username) {
+  if (!confirm(`Terminate session for '${username}'?`)) return;
+  const r = await api(`/api/admin/sessions/${sid}`, 'DELETE');
+  if (r.ok) { toast(`✓ Session terminated`, 'ok'); loadSessions(); }
+  else toast('Error: ' + (r.error||'unknown'), 'err');
+}
+
+// ── Intel Sessions ────────────────────────────────────────────────────────────
+const TYPE_LABELS = { asn:'ASN', domain:'Domain', recon:'Recon', xploiter:'Xploiter' };
+const TYPE_COLORS = { asn:'var(--accent)', domain:'var(--green)', recon:'var(--amber)', xploiter:'var(--red)' };
+
+async function loadIntelSessions() {
+  const sessions = await api('/api/admin/intel-sessions') || [];
+  const tbody = document.getElementById('intel-sessions-tbody');
+  if (!sessions.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No intelligence sessions found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sessions.map(s => {
+    const typeLabel = TYPE_LABELS[s.type] || s.type || '—';
+    const typeColor = TYPE_COLORS[s.type] || 'var(--t3)';
+    const owner = s.username || `uid:${s.user_id}` || 'unknown';
+    const sum = s.summary || {};
+    const statusBadge = sum.status === 'running'
+      ? '<span class="badge badge-active">● Running</span>'
+      : '<span class="badge badge-disabled">Done</span>';
+    return `<tr>
+      <td style="font-weight:600;color:var(--t1)">${esc(owner)}</td>
+      <td><span style="color:${typeColor};font-weight:600;font-size:11px">${esc(typeLabel)}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3)">${esc(s.target||'—')}</td>
+      <td style="color:var(--t2)">${esc(s.name||'—')}</td>
+      <td style="font-size:11px;color:var(--t4)">${fmtDate(s.created_at ? s.created_at * 1000 : null)}</td>
+      <td><button class="btn btn-danger btn-xs" onclick="deleteIntelSession('${esc(s.id)}','${esc(owner)}')">Delete</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteIntelSession(sid, owner) {
+  if (!confirm(`Delete intelligence session for '${owner}'?`)) return;
+  const r = await api(`/api/admin/intel-sessions/${sid}`, 'DELETE');
+  if (r && r.ok) { toast('✓ Session deleted', 'ok'); loadIntelSessions(); }
+  else toast('Error: ' + ((r && r.error) || 'unknown'), 'err');
+}
+
+// ── Audit Logs ────────────────────────────────────────────────────────────────
+async function loadAudit(page) {
+  if (page) auditPage = page;
+  const uf = document.getElementById('audit-user-filter').value;
+  const af = document.getElementById('audit-action-filter').value;
+  const url = `/api/admin/audit-logs?page=${auditPage}&per_page=50${uf?'&username='+encodeURIComponent(uf):''}${af?'&action='+encodeURIComponent(af):''}`;
+  const d = await api(url);
+  const tbody = document.getElementById('audit-tbody');
+  if (!d.logs?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">No audit events found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = d.logs.map(l => `
+    <tr class="log-row">
+      <td>${new Date(l.timestamp).toLocaleString()}</td>
+      <td style="font-weight:600;color:var(--t2)">${esc(l.username||'—')}</td>
+      <td><span class="log-action ${esc(l.action)}">${esc(l.action)}</span></td>
+      <td class="log-details" title="${esc(l.details)}">${esc(l.details||'—')}</td>
+      <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t4)">${esc(l.ip_address||'—')}</td>
+    </tr>`).join('');
+
+  // Pagination
+  const pg = document.getElementById('audit-pagination');
+  pg.innerHTML = `Page ${d.page} of ${d.pages} &nbsp;|&nbsp; ${d.total} total events &nbsp;`
+    + (d.page > 1 ? `<button class="btn btn-outline btn-xs" onclick="loadAudit(${d.page-1})">← Prev</button>` : '')
+    + (d.page < d.pages ? `<button class="btn btn-outline btn-xs" onclick="loadAudit(${d.page+1})">Next →</button>` : '');
+}
+
+async function clearAuditLogs() {
+  if (!confirm('Clear ALL audit logs? This cannot be undone.')) return;
+  const r = await api('/api/admin/audit-logs/clear', 'DELETE');
+  if (r?.ok) {
+    toast(`Cleared ${r.deleted} audit log entries`, 'ok');
+    loadAudit();
+  } else {
+    toast('Error: ' + (r?.error || 'unknown'), 'err');
+  }
+}
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+async function logout() {
+  await fetch('/auth/logout', {method:'POST'});
+  window.location.href = '/auth/login';
+}
+
+// ── Tools Update ─────────────────────────────────────────────────────────────
+let _tuTools   = [];
+let _tuRunning = false;
+
+function _tuFmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  const now = Date.now();
+  const diff = now - d.getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Today ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  if (days === 1) return 'Yesterday';
+  if (days < 30)  return `${days}d ago`;
+  if (days < 365) return d.toLocaleDateString([], {month:'short', day:'numeric'});
+  return d.toLocaleDateString([], {year:'numeric', month:'short', day:'numeric'});
+}
+
+async function loadToolsStatus() {
+  const grid = document.getElementById('tu-grid');
+  grid.innerHTML = '<div style="color:var(--t4);padding:24px 0;text-align:center"><div class="loader"></div></div>';
+  const tools = await api('/api/admin/tools/status');
+  if (!Array.isArray(tools)) { grid.innerHTML = '<div style="color:var(--t4);padding:16px">Failed to load tools.</div>'; return; }
+  _tuTools = tools;
+  _tuRender(tools);
+}
+
+function _tuRender(tools) {
+  const grid    = document.getElementById('tu-grid');
+  const summary = document.getElementById('tu-summary');
+  const inst    = tools.filter(t => t.installed).length;
+  summary.textContent = `${inst} / ${tools.length} installed`;
+
+  // Group by dashboard → category
+  const dash = {};
+  tools.forEach(t => {
+    const d = t.dashboard || 'Other';
+    const c = t.category  || 'General';
+    if (!dash[d]) dash[d] = {};
+    if (!dash[d][c]) dash[d][c] = [];
+    dash[d][c].push(t);
+  });
+
+  const dashOrder = ['Intelligence', 'Xpl03tEr', 'Misc Tools', 'All', 'Other'];
+  const dashColors = {
+    'Intelligence': '#6366f1',
+    'Xpl03tEr':     '#ef4444',
+    'Misc Tools':   '#f97316',
+    'All':          '#22c55e',
+  };
+
+  grid.innerHTML = dashOrder.filter(d => dash[d]).map(d => {
+    const cats = dash[d];
+    const color = dashColors[d] || 'var(--t3)';
+    const dInst = Object.values(cats).flat().filter(t => t.installed).length;
+    const dTot  = Object.values(cats).flat().length;
+    return `
+    <div style="margin-bottom:18px;border:1px solid var(--b1);border-radius:10px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--b1)">
+        <span style="font-size:12px;font-weight:700;color:${color}">${esc(d)}</span>
+        <span style="font-size:10.5px;color:var(--t4);flex:1">${dInst}/${dTot} installed</span>
+      </div>
+      ${Object.entries(cats).map(([cat, items]) => `
+        <div style="padding:8px 14px 4px;border-bottom:1px solid var(--b1)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t4);margin-bottom:6px">${esc(cat)}</div>
+          ${items.map(t => `
+          <div id="tu-row-${esc(t.id)}" style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03)">
+            <div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${t.installed ? '#22c55e' : '#6b7280'}"></div>
+            <div style="flex:1;min-width:0">
+              <span style="font-size:12px;font-weight:600;color:${t.installed ? 'var(--t1)' : 'var(--t4)'}">${esc(t.label)}</span>
+              ${t.path ? `<span style="font-size:9.5px;color:var(--t4);margin-left:7px;font-family:'JetBrains Mono',monospace;opacity:.7">${esc(t.path)}</span>` : ''}
+            </div>
+            <div id="tu-lu-${esc(t.id)}" style="font-size:10px;color:var(--t4);min-width:90px;text-align:right;white-space:nowrap" title="${t.last_updated ? new Date(t.last_updated*1000).toLocaleString() : 'Never updated'}">${t.installed ? _tuFmtDate(t.last_updated) : '<span style="color:#6b7280">—</span>'}</div>
+            <div id="tu-status-${esc(t.id)}" style="font-size:10.5px;min-width:70px;text-align:right;color:var(--t4)"></div>
+            ${t.updatable
+              ? `<button class="btn btn-outline btn-xs" onclick="updateTool('${esc(t.id)}')" id="tu-btn-${esc(t.id)}" style="font-size:10px;padding:3px 8px;min-width:70px">${t.installed ? '⬆ Update' : '⬇ Install'}</button>`
+              : `<span style="font-size:9.5px;color:var(--t4);padding:3px 8px;min-width:70px;text-align:center">manual</span>`}
+          </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function tuFilter() {
+  const q = document.getElementById('tu-filter').value.toLowerCase();
+  const filtered = _tuTools.filter(t =>
+    !q ||
+    t.label.toLowerCase().includes(q) ||
+    t.id.toLowerCase().includes(q) ||
+    t.category.toLowerCase().includes(q) ||
+    (t.dashboard || '').toLowerCase().includes(q)
+  );
+  _tuRender(filtered);
+}
+
+function _tuLog(line, success) {
+  const box = document.getElementById('tu-log');
+  box.style.display = 'block';
+  const color = success === true ? '#22c55e' : success === false ? '#f87171' : '';
+  box.innerHTML += (color ? `<span style="color:${color}">` : '') + esc(line) + (color ? '</span>' : '') + '\n';
+  box.scrollTop = box.scrollHeight;
+}
+
+function _tuSetBtn(id, text, disabled) {
+  const btn = document.getElementById('tu-btn-' + id);
+  if (btn) { btn.textContent = text; btn.disabled = disabled; }
+}
+
+function _tuSetStatus(id, text, color) {
+  const el = document.getElementById('tu-status-' + id);
+  if (el) { el.textContent = text; if (color) el.style.color = color; }
+}
+
+function _tuSetLastUpdated(id, ts) {
+  const el = document.getElementById('tu-lu-' + id);
+  if (el && ts) {
+    el.textContent = _tuFmtDate(ts);
+    el.title = new Date(ts * 1000).toLocaleString();
+  }
+}
+
+async function updateTool(toolId) {
+  if (_tuRunning) { toast('Another update is already running', 'err'); return; }
+  _tuRunning = true;
+  const log = document.getElementById('tu-log');
+  log.style.display = 'block';
+  log.innerHTML = '<div style="color:var(--accent2);font-weight:600;margin-bottom:6px;font-size:12px">▸ Updating ' + toolId + '…</div>';
+  _tuSetBtn(toolId, '⟳ Running…', true);
+  _tuSetStatus(toolId, 'updating…', 'var(--accent2)');
+
+  try {
+    const res = await fetch(`/api/admin/tools/update/${encodeURIComponent(toolId)}`, {method:'POST'});
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, {stream: true});
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for (const part of parts) {
+        const raw = part.replace(/^data: /, '').trim();
+        if (!raw) continue;
+        let ev;
+        try { ev = JSON.parse(raw); } catch { continue; }
+        if (ev.type === 'log') {
+          _tuLog(ev.line);
+        } else if (ev.type === 'done') {
+          _tuLog(ev.line, ev.success);
+          if (ev.success) {
+            _tuSetStatus(toolId, '✓ done', '#22c55e');
+            _tuSetBtn(toolId, '⬆ Update', false);
+            if (ev.last_updated) _tuSetLastUpdated(toolId, ev.last_updated);
+            // Update dot color
+            const row = document.getElementById('tu-row-' + toolId);
+            if (row) { const dot = row.querySelector('div[style*="border-radius:50%"]'); if (dot) dot.style.background = '#22c55e'; }
+          } else {
+            _tuSetStatus(toolId, '✗ failed', '#f87171');
+            _tuSetBtn(toolId, '⬆ Retry', false);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    _tuLog('Request failed: ' + e.message, false);
+    _tuSetBtn(toolId, '⬆ Retry', false);
+    _tuSetStatus(toolId, '✗ error', '#f87171');
+  }
+  _tuRunning = false;
+}
+
+async function updateAllTools() {
+  if (_tuRunning) { toast('An update is already running', 'err'); return; }
+  const installed = _tuTools.filter(t => t.installed && t.updatable);
+  if (!installed.length) { toast('No updatable installed tools found', 'err'); return; }
+  if (!confirm(`Update ${installed.length} installed tool(s)? This may take several minutes.`)) return;
+
+  const log = document.getElementById('tu-log');
+  log.style.display = 'block';
+  log.innerHTML = '';
+  document.getElementById('tu-update-all-btn').disabled = true;
+
+  for (const t of installed) {
+    _tuLog(`\n━━━━━━━━━━ ${t.label} ━━━━━━━━━━`);
+    await updateTool(t.id);
+  }
+
+  document.getElementById('tu-update-all-btn').disabled = false;
+  toast(`Updated ${installed.length} tools`, 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── ADMIN ENHANCEMENTS ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Animated Count-Up on Stat Cards ──
+function animateValue(el, end) {
+  if (!el || isNaN(end)) { if(el) el.textContent = end; return; }
+  var start = 0, duration = 800;
+  var startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    var progress = Math.min((ts - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    el.textContent = Math.round(eased * end);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// Patch loadOverview to use animated counters
+var _origLoadOverview = window.loadOverview;
+if (typeof _origLoadOverview === 'function') {
+  window.loadOverview = async function() {
+    await _origLoadOverview.apply(this, arguments);
+    // Re-animate visible numbers
+    document.querySelectorAll('.stat-val').forEach(function(el) {
+      var val = parseInt(el.textContent);
+      if (!isNaN(val) && val > 0) animateValue(el, val);
+    });
+  };
+}
+
+// ── System Pulse (heartbeat-style canvas) ──
+(function() {
+  var canvas = document.getElementById('admin-pulse');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  var data = [];
+  var maxPts = 100;
+
+  function addPulse() {
+    // Simulate system pulse (random CPU-like values)
+    var base = 30 + Math.random() * 20;
+    var spike = Math.random() > 0.85 ? 30 + Math.random() * 30 : 0;
+    data.push(base + spike);
+    if (data.length > maxPts) data.shift();
+  }
+
+  function drawPulse() {
+    ctx.clearRect(0, 0, w, h);
+    // Grid lines
+    ctx.strokeStyle = 'rgba(99,102,241,.08)';
+    ctx.lineWidth = 0.5;
+    for (var i = 0; i < 4; i++) {
+      var y = (h / 4) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    if (data.length < 2) return;
+    // Gradient fill
+    var grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(99,102,241,.15)');
+    grad.addColorStop(1, 'rgba(99,102,241,0)');
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (var i = 0; i < data.length; i++) {
+      var x = (i / (maxPts - 1)) * w;
+      var y = h - (data[i] / 100) * h;
+      if (i === 0) ctx.lineTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(((data.length - 1) / (maxPts - 1)) * w, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // Line
+    ctx.beginPath();
+    for (var i = 0; i < data.length; i++) {
+      var x = (i / (maxPts - 1)) * w;
+      var y = h - (data[i] / 100) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#6366f1';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Glow on latest point
+    if (data.length) {
+      var lx = ((data.length - 1) / (maxPts - 1)) * w;
+      var ly = h - (data[data.length - 1] / 100) * h;
+      ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#6366f1'; ctx.fill();
+      ctx.beginPath(); ctx.arc(lx, ly, 6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(99,102,241,.2)'; ctx.fill();
+    }
+  }
+
+  // Init with some data
+  for (var i = 0; i < maxPts; i++) addPulse();
+  drawPulse();
+  setInterval(function() { addPulse(); drawPulse(); }, 1000);
+})();
+
+// ── Activity Timeline (bar chart) ──
+(function() {
+  var canvas = document.getElementById('admin-activity');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  // Generate 24 bars (simulated hourly activity)
+  var bars = [];
+  for (var i = 0; i < 24; i++) {
+    bars.push(Math.random() * 0.6 + (i >= 8 && i <= 20 ? Math.random() * 0.4 : 0));
+  }
+  var maxBar = Math.max.apply(null, bars);
+
+  function drawBars() {
+    ctx.clearRect(0, 0, w, h);
+    var barW = (w - 48) / 24;
+    var gap = 2;
+    for (var i = 0; i < 24; i++) {
+      var bh = (bars[i] / maxBar) * (h - 20);
+      var x = 24 + i * barW + gap;
+      var y = h - 10 - bh;
+      // Bar
+      var grad = ctx.createLinearGradient(0, y, 0, h - 10);
+      grad.addColorStop(0, 'rgba(99,102,241,.6)');
+      grad.addColorStop(1, 'rgba(99,102,241,.1)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, barW - gap * 2, bh);
+      // Top glow
+      ctx.fillStyle = 'rgba(99,102,241,.8)';
+      ctx.fillRect(x, y, barW - gap * 2, 2);
+    }
+    // Hour labels
+    ctx.fillStyle = '#444';
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'center';
+    for (var i = 0; i < 24; i += 4) {
+      var x = 24 + i * barW + barW / 2;
+      ctx.fillText(i + 'h', x, h - 1);
+    }
+  }
+  drawBars();
+})();
+
+// ── Cursor Glow ──
+(function(){
+  var g=document.createElement('div');
+  g.style.cssText='position:fixed;width:300px;height:300px;border-radius:50%;pointer-events:none;z-index:0;opacity:0;transition:opacity .3s;background:radial-gradient(circle,rgba(99,102,241,.05) 0%,rgba(99,102,241,.02) 30%,transparent 70%);transform:translate(-50%,-50%)';
+  document.body.appendChild(g);
+  var v=false;
+  document.addEventListener('mousemove',function(e){g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';if(!v){v=true;g.style.opacity='1';}});
+  document.addEventListener('mouseleave',function(){v=false;g.style.opacity='0';});
+})();
+
+// ── Particle Background ──
+(function(){
+  var c=document.createElement('canvas');
+  c.style.cssText='position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.2';
+  document.body.insertBefore(c,document.body.firstChild);
+  var ctx=c.getContext('2d');var ps=[],N=35,MD=130,run=true;
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}resize();
+  window.addEventListener('resize',resize);
+  for(var i=0;i<N;i++)ps.push({x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.5+.5});
+  function draw(){if(!run)return;ctx.clearRect(0,0,c.width,c.height);
+  for(var i=0;i<ps.length;i++){var p=ps[i];p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(99,102,241,.3)';ctx.fill();
+  for(var j=i+1;j<ps.length;j++){var q=ps[j],dx=p.x-q.x,dy=p.y-q.y,d=Math.sqrt(dx*dx+dy*dy);
+  if(d<MD){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='rgba(99,102,241,'+(1-d/MD)*.1+')';ctx.lineWidth=.5;ctx.stroke();}}}
+  requestAnimationFrame(draw);}draw();
+  document.addEventListener('visibilitychange',function(){if(document.hidden)run=false;else{run=true;draw();}});
+})();
+
+// ── Switch Panel helper (public) ──
+window.switchPanel = function(panelId) {
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  var navItem = document.querySelector('.nav-item[data-panel="'+panelId+'"]');
+  if (navItem) navItem.classList.add('active');
+  var panel = document.getElementById('panel-'+panelId);
+  if (panel) panel.classList.add('active');
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── SYSTEM HEALTH ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(2) + ' GB';
+}
+
+function _fmtUptime(sec) {
+  var d = Math.floor(sec/86400), h = Math.floor((sec%86400)/3600), m = Math.floor((sec%3600)/60);
+  var parts = [];
+  if (d) parts.push(d+'d');
+  parts.push(h+'h');
+  parts.push(m+'m');
+  return parts.join(' ');
+}
+
+function _renderGauge(containerId, pct, color) {
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  var r = 38, circ = 2*Math.PI*r;
+  var offset = circ - (pct/100)*circ;
+  c.innerHTML = '<svg><circle class="bg" cx="45" cy="45" r="'+r+'" stroke-dasharray="'+circ+'" />'
+    + '<circle class="fg" cx="45" cy="45" r="'+r+'" stroke="'+color+'" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" /></svg>'
+    + '<div class="gauge-val">'+Math.round(pct)+'%</div>';
+}
+
+function _gaugeColor(pct) {
+  return pct > 85 ? '#ef4444' : pct > 60 ? '#f59e0b' : '#22c55e';
+}
+
+let _shInterval = null;
+
+async function loadSystemHealth() {
+  var d = await api('/api/admin/system-health');
+  if (!d || d.error) return;
+
+  _renderGauge('sh-cpu-gauge', d.cpu_percent, _gaugeColor(d.cpu_percent));
+  _renderGauge('sh-mem-gauge', d.memory.percent, _gaugeColor(d.memory.percent));
+  _renderGauge('sh-disk-gauge', d.disk.percent, _gaugeColor(d.disk.percent));
+
+  document.getElementById('sh-uptime').textContent = _fmtUptime(d.uptime_seconds);
+  document.getElementById('sh-hostname').textContent = d.hostname || '';
+  document.getElementById('sh-net-sent').textContent = _fmtBytes(d.network.bytes_sent);
+  document.getElementById('sh-net-recv').textContent = _fmtBytes(d.network.bytes_recv);
+  document.getElementById('sh-sysinfo').innerHTML =
+    '<div>'+esc(d.platform)+'</div><div>Python '+esc(d.python_version)+'</div><div>'+d.cpu_count+' CPU cores</div>'
+    + '<div>RAM: '+_fmtBytes(d.memory.used)+' / '+_fmtBytes(d.memory.total)+'</div>'
+    + '<div>Disk: '+_fmtBytes(d.disk.used)+' / '+_fmtBytes(d.disk.total)+'</div>';
+
+  // Top processes
+  var procs = d.top_processes || [];
+  document.getElementById('sh-procs').innerHTML = procs.length ? procs.map(function(p) {
+    var cpuW = Math.min(p.cpu_percent || 0, 100);
+    var memW = Math.min(p.memory_percent || 0, 100);
+    return '<div class="proc-bar">'
+      + '<span style="width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t1);font-weight:500">'+esc(p.name)+'</span>'
+      + '<span style="width:50px;text-align:right;color:var(--accent2)">'+cpuW.toFixed(1)+'%</span>'
+      + '<div style="flex:1;background:var(--bg3);border-radius:3px;height:6px;overflow:hidden">'
+      + '<div class="proc-bar-fill" style="width:'+cpuW+'%;background:'+_gaugeColor(cpuW)+'"></div></div>'
+      + '<span style="width:50px;text-align:right;color:var(--t3)">'+memW.toFixed(1)+'%</span>'
+      + '</div>';
+  }).join('') : '<div style="color:var(--t4);font-size:11px;padding:8px">No active processes.</div>';
+
+  // Auto-refresh every 5s while panel is visible
+  if (_shInterval) clearInterval(_shInterval);
+  _shInterval = setInterval(function() {
+    if (document.getElementById('panel-system-health')?.classList.contains('active')) loadSystemHealth();
+    else { clearInterval(_shInterval); _shInterval = null; }
+  }, 5000);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── SECURITY ANALYTICS ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadSecurityAnalytics() {
+  var d = await api('/api/admin/security-analytics');
+  if (!d) return;
+
+  // Totals
+  var totalSuccess = 0, totalFailed = 0;
+  Object.values(d.daily_stats || {}).forEach(function(v) { totalSuccess += v.success; totalFailed += v.failed; });
+  document.getElementById('sec-success').textContent = totalSuccess;
+  document.getElementById('sec-failed').textContent = totalFailed;
+  document.getElementById('sec-unique-ips').textContent = (d.top_failed_ips || []).length;
+  document.getElementById('sec-targeted').textContent = (d.top_targeted_users || []).length;
+
+  // Animate
+  document.querySelectorAll('#sec-stats .stat-val').forEach(function(el) {
+    var v = parseInt(el.textContent); if (!isNaN(v) && v > 0) animateValue(el, v);
+  });
+
+  // Hourly chart
+  _drawSecHourly(d.hourly_stats || {});
+  _drawSecDaily(d.daily_stats || {});
+
+  // Top IPs
+  var ips = d.top_failed_ips || [];
+  document.getElementById('sec-top-ips').innerHTML = ips.length ? ips.map(function(r) {
+    return '<div class="threat-card" style="margin-bottom:6px;display:flex;align-items:center;gap:10px">'
+      + '<div class="threat-count" style="font-size:18px;min-width:40px;text-align:center;color:var(--red2)">'+r.count+'</div>'
+      + '<div class="threat-ip">'+esc(r.ip)+'</div></div>';
+  }).join('') : '<div style="color:var(--t4);font-size:11px;padding:10px">No failed login attempts.</div>';
+
+  // Recent failed
+  var recent = d.recent_failed || [];
+  document.getElementById('sec-recent-failed').innerHTML = recent.length ? recent.map(function(r) {
+    return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--b1);font-size:11px">'
+      + '<span style="color:var(--t4);width:140px;flex-shrink:0">'+fmtDate(r.timestamp)+'</span>'
+      + '<span style="color:var(--red2);font-weight:600;width:80px">'+esc(r.username||'—')+'</span>'
+      + '<span style="color:var(--t3);font-family:JetBrains Mono,monospace;font-size:10px">'+esc(r.ip||'—')+'</span></div>';
+  }).join('') : '<div style="color:var(--t4);font-size:11px;padding:10px">No recent failures.</div>';
+}
+
+function _drawSecHourly(stats) {
+  var canvas = document.getElementById('sec-hourly-chart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  var barW = (w-20)/24, max = 1;
+  for (var i = 0; i < 24; i++) {
+    var k = String(i).padStart(2,'0');
+    var s = stats[k] || {success:0,failed:0};
+    if (s.success + s.failed > max) max = s.success + s.failed;
+  }
+  for (var i = 0; i < 24; i++) {
+    var k = String(i).padStart(2,'0');
+    var s = stats[k] || {success:0,failed:0};
+    var x = 10 + i*barW + 1;
+    var sh = (s.success/max)*(h-16), fh = (s.failed/max)*(h-16);
+    // Success
+    ctx.fillStyle = 'rgba(34,197,94,.5)';
+    ctx.fillRect(x, h-10-sh-fh, barW-2, sh);
+    // Failed
+    ctx.fillStyle = 'rgba(239,68,68,.6)';
+    ctx.fillRect(x, h-10-fh, barW-2, fh);
+  }
+  ctx.fillStyle = '#444'; ctx.font = '8px JetBrains Mono'; ctx.textAlign = 'center';
+  for (var i = 0; i < 24; i += 4) ctx.fillText(i+'h', 10+i*barW+barW/2, h-1);
+}
+
+function _drawSecDaily(stats) {
+  var canvas = document.getElementById('sec-daily-chart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  var days = Object.keys(stats).sort();
+  if (!days.length) return;
+  var max = 1;
+  days.forEach(function(d) { var t = stats[d].success+stats[d].failed; if(t>max) max=t; });
+  var barW = (w-20)/Math.max(days.length,1);
+  days.forEach(function(d, i) {
+    var x = 10+i*barW+1, s = stats[d];
+    var sh = (s.success/max)*(h-16), fh = (s.failed/max)*(h-16);
+    ctx.fillStyle = 'rgba(34,197,94,.5)'; ctx.fillRect(x, h-10-sh-fh, barW-2, sh);
+    ctx.fillStyle = 'rgba(239,68,68,.6)'; ctx.fillRect(x, h-10-fh, barW-2, fh);
+    ctx.fillStyle = '#444'; ctx.font = '8px JetBrains Mono'; ctx.textAlign = 'center';
+    ctx.fillText(d.slice(5), x+barW/2-1, h-1);
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── ANNOUNCEMENTS ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadAnnouncements() {
+  var anns = await api('/api/admin/announcements') || [];
+  var el = document.getElementById('ann-list');
+  if (!anns.length) { el.innerHTML = '<div style="color:var(--t4);font-size:12px;padding:30px;text-align:center">No announcements yet. Click "+ New Announcement" to broadcast a message to all users.</div>'; return; }
+  el.innerHTML = anns.map(function(a) {
+    return '<div class="ann-item">'
+      + '<span class="ann-badge '+esc(a.type)+'">'+esc(a.type)+'</span>'
+      + '<div class="ann-msg">'+esc(a.message)+'</div>'
+      + '<div class="ann-meta">'+esc(a.created_by)+' · '+fmtDate(a.created_at)+'</div>'
+      + '<button class="btn btn-danger btn-xs" onclick="deleteAnnouncement('+a.id+')">✕</button>'
+      + '</div>';
+  }).join('');
+}
+
+function openCreateAnnouncement() {
+  openModal('New Announcement', `
+    <div class="form-field"><label class="form-label">Message</label>
+      <textarea id="f-ann-msg" class="form-input" rows="3" placeholder="Enter announcement message…" style="resize:vertical"></textarea></div>
+    <div class="form-field"><label class="form-label">Type</label>
+      <select id="f-ann-type" class="form-input">
+        <option value="info">Info</option>
+        <option value="warning">Warning</option>
+        <option value="critical">Critical</option>
+      </select></div>`,
+    `<button class="btn btn-outline" onclick="document.getElementById('modal-bg').classList.remove('open')">Cancel</button>
+     <button class="btn btn-primary" onclick="submitAnnouncement()">Broadcast</button>`
+  );
+}
+
+async function submitAnnouncement() {
+  var msg = document.getElementById('f-ann-msg').value.trim();
+  var type = document.getElementById('f-ann-type').value;
+  if (!msg) { showModalErr('Message is required.'); return; }
+  var r = await api('/api/admin/announcements', 'POST', {message: msg, type: type});
+  if (r.ok) {
+    document.getElementById('modal-bg').classList.remove('open');
+    toast('Announcement broadcasted', 'ok');
+    loadAnnouncements();
+  } else showModalErr(r.error || 'Failed.');
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement?')) return;
+  await api('/api/admin/announcements/'+id, 'DELETE');
+  toast('Announcement removed', 'ok');
+  loadAnnouncements();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── MAINTENANCE MODE ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _maintPaintSlider(on) {
+  var s = document.getElementById('maint-slider');
+  var badge = document.getElementById('maint-state-badge');
+  if (!s) return;
+  if (on) {
+    s.style.background = 'var(--amber)';
+    s.style.borderColor = 'var(--amber)';
+    s.innerHTML = '<span style="position:absolute;top:2px;right:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.4)"></span>';
+    if (badge) badge.style.display = 'inline-block';
+  } else {
+    s.style.background = 'var(--bg4)';
+    s.style.borderColor = 'var(--b2)';
+    s.innerHTML = '<span style="position:absolute;top:2px;left:3px;width:18px;height:18px;background:var(--t3);border-radius:50%;transition:.2s"></span>';
+    if (badge) badge.style.display = 'none';
+  }
+}
+
+function maintToggleChanged() {
+  var on = document.getElementById('maint-toggle').checked;
+  _maintPaintSlider(on);
+}
+
+async function loadMaintenance() {
+  var r = await api('/api/admin/maintenance');
+  if (!r || r.error) { toast('Failed to load maintenance state', 'err'); return; }
+  var t = document.getElementById('maint-toggle');
+  var m = document.getElementById('maint-message');
+  var info = document.getElementById('maint-info');
+  if (t) t.checked = !!r.enabled;
+  if (m) m.value = r.message || '';
+  _maintPaintSlider(!!r.enabled);
+  if (info) {
+    if (r.set_by && r.set_at) {
+      var when = '';
+      try { when = new Date(r.set_at).toLocaleString(); } catch(e) { when = r.set_at; }
+      info.style.display = 'block';
+      info.innerHTML = 'Last changed by <strong style="color:var(--accent2)">'+r.set_by+'</strong> at <span style="font-family:\'JetBrains Mono\',monospace">'+when+'</span>';
+    } else {
+      info.style.display = 'none';
+    }
+  }
+}
+
+async function saveMaintenance() {
+  var enabled = document.getElementById('maint-toggle').checked;
+  var message = (document.getElementById('maint-message').value || '').trim();
+  if (enabled && !confirm('Enable maintenance mode? Non-admin users will be locked out.')) {
+    document.getElementById('maint-toggle').checked = false;
+    _maintPaintSlider(false);
+    return;
+  }
+  var r = await api('/api/admin/maintenance', 'POST', {enabled: enabled, message: message});
+  if (r && r.ok) {
+    toast(enabled ? 'Maintenance mode ENABLED' : 'Maintenance mode disabled', enabled ? 'err' : 'ok');
+    loadMaintenance();
+  } else {
+    toast((r && r.error) || 'Failed to save', 'err');
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── BULK USER ACTIONS ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+function toggleBulkAll(el) {
+  document.querySelectorAll('.bulk-user-check').forEach(function(c) { c.checked = el.checked; });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  var checks = document.querySelectorAll('.bulk-user-check:checked');
+  var bar = document.getElementById('bulk-bar');
+  bar.style.display = checks.length ? 'flex' : 'none';
+  document.getElementById('bulk-count').textContent = checks.length + ' selected';
+}
+
+function clearBulk() {
+  document.querySelectorAll('.bulk-user-check').forEach(function(c) { c.checked = false; });
+  var all = document.getElementById('bulk-all'); if (all) all.checked = false;
+  updateBulkBar();
+}
+
+async function bulkAction(action) {
+  var checks = document.querySelectorAll('.bulk-user-check:checked');
+  var ids = Array.from(checks).map(function(c) { return parseInt(c.dataset.uid); });
+  if (!ids.length) return;
+  var label = action === 'delete' ? 'permanently DELETE' : action;
+  if (!confirm(label + ' ' + ids.length + ' user(s)?')) return;
+  var r = await api('/api/admin/users/bulk-action', 'POST', {action: action, user_ids: ids});
+  if (r.ok) {
+    toast(r.affected + ' user(s) ' + action + 'd', 'ok');
+    loadUsers();
+  } else toast('Error: ' + (r.error || 'unknown'), 'err');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── AUDIT EXPORT ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+function exportAuditLogs() {
+  var uf = document.getElementById('audit-user-filter')?.value || '';
+  var af = document.getElementById('audit-action-filter')?.value || '';
+  var url = '/api/admin/audit-logs/export?limit=5000';
+  if (uf) url += '&username=' + encodeURIComponent(uf);
+  if (af) url += '&action=' + encodeURIComponent(af);
+  window.open(url, '_blank');
+  toast('Downloading audit log CSV…', 'ok');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  var key = e.key.toLowerCase();
+  if (key === '1') switchPanel('overview');
+  else if (key === '2') switchPanel('users');
+  else if (key === '3') switchPanel('system-health');
+  else if (key === '4') switchPanel('security');
+  else if (key === '5') switchPanel('announcements');
+  else if (key === '6') switchPanel('tasks');
+  else if (key === '7') switchPanel('sessions');
+  else if (key === '8') switchPanel('audit');
+  else if (key === '9') switchPanel('tools-update');
+  else if (key === 'r' && !e.ctrlKey && !e.metaKey) {
+    // Refresh current panel
+    var active = document.querySelector('.panel.active');
+    if (active) {
+      var id = active.id.replace('panel-','');
+      switchPanel(id);
+    }
+  }
+});
+</script>
+</body>
+</html>

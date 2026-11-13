@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Search — ZeekGlare</title>
+<style>
+:root{--bg:#0b0f19;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--accent:#6366f1;--ok:#22c55e;}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px}
+h1{margin:0 0 16px;font-size:22px}input,select{background:#1f2937;border:1px solid #374151;color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px}
+input{width:100%;max-width:520px}select{width:200px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+button{background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer}
+button:hover{opacity:.9}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid #1f2937;border-radius:10px;padding:14px;cursor:pointer;transition:transform .1s}
+.card:hover{transform:translateY(-2px);border-color:var(--accent)}.card h4{margin:0 0 6px;font-size:15px;color:var(--text)}
+.meta{font-size:12px;color:var(--muted)}.badge{display:inline-block;background:#1f2937;border:1px solid #374151;padding:2px 8px;border-radius:12px;font-size:11px;margin-right:6px}
+.stats{font-size:12px;color:var(--muted);margin-bottom:12px}
+</style>
+</head>
+<body>
+<h1>🔍 Global Search</h1>
+<div class="row">
+  <input id="q" type="text" placeholder="Search sessions, targets, findings…" onkeydown="if(event.key==='Enter')search()">
+  <select id="mod"><option value="">All modules</option></select>
+  <button onclick="search()">Search</button>
+</div>
+<div class="stats" id="stats"></div>
+<div class="grid" id="results"></div>
+
+<script>
+let modules=[];
+async function j(url,opts){const r=await fetch(url,opts);if(!r.ok)throw new Error(r.status);return r.json()}
+async function loadModules(){
+  try{const d=await j('/api/search/modules');modules=d.modules||[];
+    const s=document.getElementById('mod');s.innerHTML='<option value="">All modules</option>'+modules.map(m=>`<option value="${m}">${m}</option>`).join('');
+  }catch(e){console.error(e);}
+}
+async function search(){
+  const q=document.getElementById('q').value.trim();if(q.length<2){alert('Query must be at least 2 characters');return;}
+  const mod=document.getElementById('mod').value;
+  document.getElementById('results').innerHTML='<div class="stats">Searching…</div>';
+  try{
+    const d=await j('/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,module:mod||undefined,limit:50})});
+    document.getElementById('stats').innerText=`Found ${d.total} results across ${d.modules?.length||0} module(s)`;
+    const g=document.getElementById('results');
+    if(!d.results||!d.results.length){g.innerHTML='<div class="stats">No results found.</div>';return;}
+    g.innerHTML=d.results.map(r=>`
+      <div class="card" onclick="window.location='/sessions?id=${r.id}'">
+        <h4>${escapeHtml(r.target)}</h4>
+        <div class="meta">
+          <span class="badge">${escapeHtml(r.module)}</span>
+          <span class="badge">${r.findings} findings</span>
+          ${r.label?'<span class="badge">'+escapeHtml(r.label)+'</span>':''}
+        </div>
+        <div class="meta" style="margin-top:6px">${escapeHtml(r.created_at||'')}</div>
+      </div>
+    `).join('');
+  }catch(e){console.error(e);document.getElementById('results').innerHTML='<div class="stats" style="color:#ef4444">Error: '+escapeHtml(e.message)+'</div>';}
+}
+function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+loadModules();
+</script>
+</body>
+</html>

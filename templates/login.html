@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ZeekGlare — Secure Access Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#020308;--bg1:#050818;--bg2:#0a0f22;--bg3:#10162e;
+  --b1:#1a2340;--b2:#243060;--b3:#2e3d78;
+  --accent:#6366f1;--accent2:#818cf8;--accent3:#a78bfa;
+  --red:#ef4444;--green:#22c55e;--green2:#4ade80;
+  --amber:#f59e0b;--cyan:#22d3ee;--pink:#ec4899;
+  --t1:#e2e8f8;--t2:#8ea4c8;--t3:#4a6088;--t4:#1e2d50;
+  --r:10px;--trans:.22s cubic-bezier(.4,0,.2,1);
+  --mx:50%;--my:50%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg0);color:var(--t1);font-family:'Inter',sans-serif;font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+a{color:var(--accent2);text-decoration:none}
+
+/* ── Layered backgrounds ── */
+#particles,#rain{position:fixed;inset:0;z-index:0;pointer-events:none}
+#rain{opacity:0;transition:opacity .6s ease}
+body.rain-on #rain{opacity:.55}
+body.rain-on #particles{opacity:.15}
+
+.glow-orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.14;pointer-events:none;z-index:0}
+.glow-orb.orb1{width:440px;height:440px;background:#6366f1;top:-120px;left:-120px;animation:orbFloat1 14s ease-in-out infinite}
+.glow-orb.orb2{width:380px;height:380px;background:#a855f7;bottom:-100px;right:-100px;animation:orbFloat2 17s ease-in-out infinite}
+.glow-orb.orb3{width:300px;height:300px;background:#22d3ee;top:45%;left:55%;animation:orbFloat3 20s ease-in-out infinite}
+@keyframes orbFloat1{0%,100%{transform:translate(0,0)}50%{transform:translate(80px,50px)}}
+@keyframes orbFloat2{0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,-40px)}}
+@keyframes orbFloat3{0%,100%{transform:translate(0,0)}33%{transform:translate(-40px,30px)}66%{transform:translate(30px,-50px)}}
+
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(99,102,241,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,.035) 1px, transparent 1px);
+  background-size:44px 44px;pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(420px circle at var(--mx) var(--my),rgba(99,102,241,.12),transparent 60%);
+  transition:background .15s linear;
+}
+
+/* ── Top ops bar ── */
+#ops-bar{position:fixed;top:0;left:0;right:0;z-index:10;padding:10px 20px;display:flex;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--t3);border-bottom:1px solid rgba(99,102,241,.08);background:rgba(3,5,12,.6);backdrop-filter:blur(12px)}
+#ops-bar .op-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;border:1px solid rgba(99,102,241,.15);background:rgba(10,15,34,.6)}
+#ops-bar .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:dotPulse 1.8s ease infinite}
+#ops-bar .dot.warn{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+#ops-bar .dot.down{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.4}}
+#ops-bar .sep{flex:1}
+#ops-bar .op-pill.click{cursor:pointer;transition:all .2s}
+#ops-bar .op-pill.click:hover{border-color:var(--accent);color:var(--t1)}
+#ops-bar b{color:var(--t1);font-weight:600}
+
+/* ── Threat ticker ── */
+#ticker{position:fixed;top:36px;left:0;right:0;height:26px;overflow:hidden;background:rgba(3,5,12,.5);border-bottom:1px solid rgba(99,102,241,.06);z-index:9;display:flex;align-items:center;font-family:'JetBrains Mono',monospace;font-size:10.5px}
+#ticker .tick-label{padding:0 12px;background:linear-gradient(90deg,var(--red),transparent);color:#fca5a5;font-weight:700;letter-spacing:1.5px;height:100%;display:flex;align-items:center;gap:6px;flex-shrink:0;border-right:1px solid rgba(239,68,68,.2)}
+#ticker .tick-label .blip{width:6px;height:6px;border-radius:50%;background:var(--red);animation:dotPulse 1s ease infinite}
+#ticker-track{display:flex;white-space:nowrap;gap:40px;animation:tkScroll 60s linear infinite;color:var(--t2);padding-left:20px}
+#ticker-track span.c{color:var(--cyan)}
+#ticker-track span.a{color:var(--amber)}
+#ticker-track span.g{color:var(--green2)}
+#ticker-track span.r{color:#fca5a5}
+@keyframes tkScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── Layout ── */
+.page{display:flex;height:100vh;align-items:center;justify-content:center;padding:80px 20px 60px;position:relative;z-index:1;perspective:1200px}
+
+/* ── Card ── */
+.card{
+  width:100%;max-width:440px;
+  background:linear-gradient(180deg,rgba(10,15,34,.88),rgba(5,8,24,.92));
+  backdrop-filter:blur(24px);
+  border:1px solid rgba(99,102,241,.18);
+  border-radius:18px;
+  overflow:hidden;position:relative;
+  box-shadow:
+    0 40px 100px rgba(0,0,0,.7),
+    0 0 0 1px rgba(99,102,241,.08),
+    0 0 80px rgba(99,102,241,.08);
+  animation:cardAppear 1s cubic-bezier(.22,1,.36,1) forwards;
+  transform-style:preserve-3d;
+  transform:translateY(30px) rotateX(0) rotateY(0);
+  opacity:0;
+  transition:transform .35s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes cardAppear{to{transform:translateY(0) rotateX(var(--tx,0)) rotateY(var(--ty,0));opacity:1}}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:radial-gradient(280px circle at var(--cmx,50%) var(--cmy,50%),rgba(129,140,248,.14),transparent 55%);
+  opacity:0;transition:opacity .35s;
+}
+.card:hover::before{opacity:1}
+
+/* ── Scan line (shown during auth) ── */
+.card .scanline{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:18px;opacity:0;transition:opacity .2s}
+.card.scanning .scanline{opacity:1}
+.card .scanline::before{
+  content:'';position:absolute;left:-10%;right:-10%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent2),var(--cyan),var(--accent2),transparent);
+  box-shadow:0 0 18px var(--accent2),0 0 40px var(--cyan);
+  animation:scanSweep 1.6s ease-in-out infinite;
+}
+@keyframes scanSweep{0%{top:-6px}50%{top:calc(100% + 6px)}100%{top:-6px}}
+
+/* ── Animated accent bar ── */
+.card-accent{
+  height:3px;
+  background:linear-gradient(90deg,#6366f1,#818cf8,#a78bfa,#ec4899,#22d3ee,#818cf8,#6366f1);
+  background-size:300% 100%;
+  animation:accentShift 5s ease infinite;
+}
+@keyframes accentShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+.card-body{padding:32px 36px 26px;position:relative}
+
+/* ── Logo ── */
+.logo-area{text-align:center;margin-bottom:24px}
+.logo-icon{
+  width:68px;height:68px;border-radius:18px;
+  background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(168,85,247,.18));
+  border:1px solid rgba(99,102,241,.35);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:32px;margin-bottom:14px;
+  position:relative;
+  animation:logoPulse 3s ease-in-out infinite;
+}
+.logo-icon::after{
+  content:'';position:absolute;inset:-5px;border-radius:22px;
+  border:1px solid rgba(99,102,241,.18);
+  animation:logoRing 3s ease-in-out infinite;
+}
+.logo-icon::before{
+  content:'';position:absolute;inset:-10px;border-radius:26px;
+  border:1px dashed rgba(99,102,241,.12);
+  animation:logoRotate 18s linear infinite;
+}
+@keyframes logoPulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.25)}50%{box-shadow:0 0 26px 6px rgba(99,102,241,.18)}}
+@keyframes logoRing{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.1);opacity:0}}
+@keyframes logoRotate{to{transform:rotate(360deg)}}
+
+.logo-title{font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--t1);background:linear-gradient(135deg,#e2e8f8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:11px;color:var(--t3);margin-top:5px;text-transform:uppercase;letter-spacing:1.3px;font-family:'JetBrains Mono',monospace}
+.logo-sub .typed-cursor{display:inline-block;width:7px;height:11px;background:var(--accent2);margin-left:2px;animation:blink 1s step-end infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Form ── */
+.field{margin-bottom:14px;position:relative}
+.field-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.field label{font-size:10.5px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.7px}
+.field-hint{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .2s}
+.field-hint.on{opacity:1}
+.field-hint.warn{color:var(--amber)}
+.input-wrap{position:relative}
+.input-wrap .pfx{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:14px;pointer-events:none;transition:color .2s}
+.input-wrap input:focus + .pfx,.input-wrap.focused .pfx{color:var(--accent2)}
+.field input{
+  width:100%;padding:12px 14px 12px 40px;
+  background:rgba(5,8,24,.85);border:1px solid var(--b1);
+  border-radius:var(--r);color:var(--t1);
+  font-size:13.5px;font-family:inherit;outline:none;
+  transition:border-color .25s ease,box-shadow .25s ease,background .25s ease;
+}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15),0 0 24px rgba(99,102,241,.1);background:rgba(5,8,24,1)}
+.field input::placeholder{color:var(--t4);font-family:inherit}
+.field input.error-input{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.1);animation:inputShake .4s ease}
+@keyframes inputShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;padding:4px 6px;border-radius:4px;transition:all .2s;font-size:14px}
+.pw-toggle:hover{color:var(--accent2);background:rgba(99,102,241,.08)}
+
+/* Strength bar */
+.pw-strength{display:flex;gap:3px;margin-top:7px;height:3px}
+.pw-strength .seg{flex:1;background:var(--b1);border-radius:2px;transition:background .3s}
+.pw-strength.s1 .seg:nth-child(-n+1){background:var(--red)}
+.pw-strength.s2 .seg:nth-child(-n+2){background:var(--amber)}
+.pw-strength.s3 .seg:nth-child(-n+3){background:var(--cyan)}
+.pw-strength.s4 .seg{background:var(--green)}
+
+/* Options row */
+.opt-row{display:flex;justify-content:space-between;align-items:center;margin:4px 0 14px;font-size:11.5px;color:var(--t3)}
+.remember{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.remember input{display:none}
+.remember .cbox{width:14px;height:14px;border-radius:4px;border:1px solid var(--b2);background:rgba(5,8,24,.8);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.remember input:checked + .cbox{background:var(--accent);border-color:var(--accent)}
+.remember input:checked + .cbox::after{content:'✓';color:#fff;font-size:10px;font-weight:700}
+.remember:hover{color:var(--t2)}
+.fp-link{color:var(--accent2);cursor:pointer;background:none;border:none;font-size:11.5px;font-family:inherit;padding:0;transition:color .2s}
+.fp-link:hover{color:var(--t1);text-decoration:underline}
+
+/* ── Submit ── */
+#submit-btn{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--accent),#4f52d1 40%,#7c3aed);
+  border:none;border-radius:var(--r);
+  color:#fff;font-size:13.5px;font-weight:700;
+  cursor:pointer;transition:all .25s ease;
+  font-family:inherit;letter-spacing:.5px;
+  position:relative;overflow:hidden;text-transform:uppercase;
+}
+#submit-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:translateX(-100%);transition:transform .6s ease;
+}
+#submit-btn:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(99,102,241,.4),0 0 40px rgba(168,85,247,.2);
+}
+#submit-btn:hover:not(:disabled)::before{transform:translateX(100%)}
+#submit-btn:active:not(:disabled){transform:translateY(0);box-shadow:0 4px 15px rgba(99,102,241,.25)}
+#submit-btn:disabled{opacity:.45;cursor:not-allowed}
+#submit-btn.loading{pointer-events:none;display:inline-flex;align-items:center;justify-content:center;gap:10px}
+.btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Alt auth row ── */
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:var(--t4);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.2),transparent)}
+.alt-auth{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.alt-btn{padding:10px;background:rgba(5,8,24,.6);border:1px solid var(--b1);border-radius:var(--r);color:var(--t2);font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .22s}
+.alt-btn:hover{border-color:var(--accent);color:var(--t1);background:rgba(99,102,241,.08);transform:translateY(-1px)}
+.alt-btn svg{opacity:.85}
+
+/* ── Msg box ── */
+#msg-box{
+  display:none;margin-top:14px;padding:11px 14px;border-radius:var(--r);
+  font-size:12px;line-height:1.55;
+  backdrop-filter:blur(8px);
+  animation:msgAppear .3s ease;
+}
+@keyframes msgAppear{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+#msg-box.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+#msg-box.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--green2)}
+#msg-box.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:var(--amber)}
+
+/* ── Footer ── */
+.card-footer{
+  padding:14px 36px;border-top:1px solid rgba(26,35,64,.6);
+  background:rgba(5,8,24,.5);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:10.5px;color:var(--t3);font-family:'JetBrains Mono',monospace;
+}
+.version-badge{
+  font-size:10px;padding:3px 9px;border-radius:6px;
+  background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent2);
+  font-family:'JetBrains Mono',monospace;
+}
+
+#default-notice{
+  margin:0 36px 14px;padding:10px 14px;
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);
+  border-radius:var(--r);font-size:11.5px;color:var(--amber);
+  display:none;animation:msgAppear .4s ease;
+  display:flex;gap:8px;align-items:flex-start;
+}
+#default-notice .icn{flex-shrink:0}
+
+/* ── Side panel (signals) ── */
+#side-panel{
+  position:fixed;right:20px;top:90px;bottom:20px;width:240px;z-index:5;
+  background:linear-gradient(180deg,rgba(10,15,34,.85),rgba(5,8,24,.9));
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(99,102,241,.15);
+  border-radius:14px;
+  padding:16px;overflow:hidden;
+  display:flex;flex-direction:column;gap:12px;
+  font-family:'JetBrains Mono',monospace;
+  animation:cardAppear 1.2s cubic-bezier(.22,1,.36,1) .3s forwards;opacity:0;transform:translateX(20px);
+}
+@media(max-width:1100px){ #side-panel{display:none} }
+#side-panel h4{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+#side-panel h4::before{content:'';width:3px;height:11px;background:var(--accent);border-radius:2px}
+.sp-metric{background:rgba(5,8,24,.6);border:1px solid var(--b1);border-radius:8px;padding:10px 12px}
+.sp-metric .lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px}
+.sp-metric .val{font-size:18px;font-weight:700;color:var(--t1);margin-top:3px;font-family:'JetBrains Mono',monospace}
+.sp-metric .val.big{font-size:22px;color:var(--accent2)}
+.sp-metric .delta{font-size:9px;color:var(--green);margin-top:2px}
+.sp-metric .delta.neg{color:var(--red)}
+#sp-log{flex:1;overflow:hidden;background:rgba(5,8,24,.6);border:1px solid var(--b1);border-radius:8px;padding:10px;font-size:10px;line-height:1.55;color:var(--t2);position:relative}
+#sp-log-inner{display:flex;flex-direction:column;gap:4px}
+.log-ln{animation:logLn .3s ease}
+.log-ln .t{color:var(--t4)}
+.log-ln .ok{color:var(--green2)}
+.log-ln .wn{color:var(--amber)}
+.log-ln .er{color:#fca5a5}
+.log-ln .in{color:var(--cyan)}
+@keyframes logLn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Forgot modal ── */
+#fp-overlay{position:fixed;inset:0;background:rgba(3,5,12,.85);backdrop-filter:blur(10px);z-index:100;display:none;align-items:center;justify-content:center;animation:msgAppear .2s ease}
+#fp-overlay.on{display:flex}
+#fp-modal{width:420px;max-width:92vw;background:#0a0f22;border:1px solid rgba(99,102,241,.3);border-radius:14px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.7)}
+#fp-modal h3{font-size:16px;color:var(--t1);margin-bottom:8px}
+#fp-modal p{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:16px}
+#fp-modal .fpm-close{float:right;background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;margin-top:-8px;margin-right:-8px}
+
+/* ── Boot overlay ── */
+#boot{position:fixed;inset:0;z-index:999;background:#020308;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:'JetBrains Mono',monospace;gap:18px;transition:opacity .5s ease}
+#boot.done{opacity:0;pointer-events:none}
+#boot-log{width:620px;max-width:90vw;font-size:11.5px;color:var(--t2);line-height:1.65;min-height:240px}
+#boot-log .ln{opacity:0;animation:bootLn .25s ease forwards}
+#boot-log .ln .tg{color:var(--t4)}
+#boot-log .ln .tok{color:var(--green2)}
+#boot-log .ln .twarn{color:var(--amber)}
+#boot-log .ln .ti{color:var(--cyan)}
+@keyframes bootLn{to{opacity:1}}
+#boot-skip{position:absolute;bottom:30px;right:30px;background:none;border:1px solid var(--b2);color:var(--t3);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;transition:all .2s}
+#boot-skip:hover{border-color:var(--accent);color:var(--t1)}
+#boot-logo{width:84px;height:84px;border-radius:20px;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(168,85,247,.18));border:1px solid rgba(99,102,241,.4);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;animation:logoPulse 2s ease-in-out infinite}
+#boot-logo::before{content:'';position:absolute;inset:-8px;border-radius:26px;border:1px solid rgba(99,102,241,.2);animation:logoRing 2s ease-in-out infinite}
+
+/* ── Keystroke heart ── */
+#kb-pulse{position:fixed;top:50%;right:290px;width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 12px var(--accent2);opacity:0;z-index:5;transform:translateY(-50%)}
+@media(max-width:1100px){ #kb-pulse{right:30px} }
+#kb-pulse.beat{animation:kbBeat .6s ease}
+@keyframes kbBeat{0%{opacity:0;transform:translateY(-50%) scale(1)}30%{opacity:1;transform:translateY(-50%) scale(2.4)}100%{opacity:0;transform:translateY(-50%) scale(1)}}
+
+/* Security row */
+.security-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(26,35,64,.4)}
+.sec-badge{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t4);letter-spacing:.3px}
+.sec-badge svg{opacity:.55}
+.sec-badge:hover{color:var(--t2)}
+.sec-badge:hover svg{opacity:1}
+
+@keyframes cardShake{0%,100%{transform:translateX(0) rotateX(0) rotateY(0)}15%{transform:translateX(-10px)}30%{transform:translateX(10px)}45%{transform:translateX(-6px)}60%{transform:translateX(6px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}
+@keyframes cardExit{to{opacity:0;transform:scale(.95) translateY(-20px)}}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<canvas id="rain"></canvas>
+<div class="glow-orb orb1"></div>
+<div class="glow-orb orb2"></div>
+<div class="glow-orb orb3"></div>
+
+<!-- ── Boot overlay ── -->
+<div id="boot">
+  <div id="boot-logo">🐾</div>
+  <div id="boot-log"></div>
+  <button id="boot-skip">[ SKIP ⏵ ]</button>
+</div>
+
+<!-- ── Ops bar ── -->
+<div id="ops-bar">
+  <div class="op-pill"><span class="dot" id="health-dot"></span><span id="health-txt">CHECKING…</span></div>
+  <div class="op-pill"><span>🌐</span>NODE <b id="node-id">ZG-01</b></div>
+  <div class="op-pill"><span>⏱</span><b id="clock">00:00:00 UTC</b></div>
+  <div class="op-pill"><span>📍</span><b id="geo">—</b></div>
+  <div class="sep"></div>
+  <div class="op-pill click" id="rain-toggle" title="Toggle matrix rain">◉ RAIN: <b id="rain-st">OFF</b></div>
+  <div class="op-pill"><span>⚡</span><b id="uptime">0s</b></div>
+</div>
+
+<!-- ── Threat ticker ── -->
+<div id="ticker">
+  <div class="tick-label"><span class="blip"></span> LIVE SIGNALS</div>
+  <div id="ticker-track"></div>
+</div>
+
+<!-- ── Side panel (large screens) ── -->
+<div id="side-panel">
+  <h4>Threat Surface</h4>
+  <div class="sp-metric"><div class="lbl">CVEs (24h)</div><div class="val big" id="m-cves">—</div><div class="delta" id="m-cves-d">+0 new</div></div>
+  <div class="sp-metric"><div class="lbl">Blocked Attempts</div><div class="val" id="m-blocked">—</div><div class="delta" id="m-blocked-d">+0</div></div>
+  <div class="sp-metric"><div class="lbl">Critical CVEs</div><div class="val" id="m-crit">—</div><div class="delta" id="m-crit-d">CVSS ≥ 9.0</div></div>
+  <h4>Secure Log</h4>
+  <div id="sp-log"><div id="sp-log-inner"></div></div>
+</div>
+
+<!-- ── Keystroke heartbeat dot ── -->
+<div id="kb-pulse"></div>
+
+<div class="page">
+  <div class="card" id="card">
+    <div class="card-accent"></div>
+    <div class="scanline"></div>
+
+    <div id="default-notice">
+      <span class="icn">⚠</span>
+      <span>Default admin credentials are active. Log in and change your password from <b>Settings → Security</b>.</span>
+    </div>
+
+    <div class="card-body">
+      <div class="logo-area">
+        <div class="logo-icon">🐾</div>
+        <div class="logo-title">ZeekGlare</div>
+        <div class="logo-sub"><span id="typed-text"></span><span class="typed-cursor"></span></div>
+      </div>
+
+      <form id="login-form" autocomplete="on">
+        <input type="hidden" id="next-input" value="{{ next }}">
+
+        <div class="field">
+          <div class="field-row">
+            <label for="username">Operator ID</label>
+            <span class="field-hint" id="user-hint"></span>
+          </div>
+          <div class="input-wrap">
+            <input id="username" name="username" type="text" autocomplete="username"
+                   placeholder="agent_handle" autofocus required>
+            <span class="pfx">◉</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-row">
+            <label for="password">Cipher</label>
+            <span class="field-hint" id="caps-hint">⚠ CAPS LOCK ON</span>
+          </div>
+          <div class="input-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password"
+                   placeholder="••••••••••••" required>
+            <span class="pfx">⟡</span>
+            <button type="button" class="pw-toggle" id="pw-toggle" title="Show/hide password" tabindex="-1">👁</button>
+          </div>
+          <div class="pw-strength" id="pw-strength"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+        </div>
+
+        <div class="opt-row">
+          <label class="remember"><input type="checkbox" id="remember-me" checked><span class="cbox"></span>Trust this device 7d</label>
+          <button type="button" class="fp-link" onclick="openFp()">Forgot cipher?</button>
+        </div>
+
+        <button id="submit-btn" type="submit">⟳ Authenticate</button>
+
+        <div id="msg-box"></div>
+
+        <div class="divider">— or continue with —</div>
+        <div class="alt-auth">
+          <button type="button" class="alt-btn" onclick="altAuth('passkey')" title="WebAuthn / Passkey">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M8 14v6l2 2h4l2-2v-6"/></svg>
+            Passkey
+          </button>
+          <button type="button" class="alt-btn" onclick="altAuth('totp')" title="Time-based OTP">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            TOTP 2FA
+          </button>
+        </div>
+
+        <div class="security-row">
+          <span class="sec-badge" title="TLS-encrypted channel">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            TLS 1.3
+          </span>
+          <span class="sec-badge" title="JWT session tokens">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            JWT
+          </span>
+          <span class="sec-badge" title="Nginx IP allowlist">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 2 17 12 22 22 17 22 7 12 2"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+            IP Gate
+          </span>
+          <span class="sec-badge" title="Brute-force rate limited">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Throttled
+          </span>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-footer">
+      <span>ZeekGlare Intelligence Platform</span>
+      <span class="version-badge">v2.1</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Forgot password modal ── -->
+<div id="fp-overlay" onclick="if(event.target===this)closeFp()">
+  <div id="fp-modal">
+    <button class="fpm-close" onclick="closeFp()">×</button>
+    <h3>🔑 Recover Access</h3>
+    <p>Enter the email address associated with your ZeekGlare account. If a matching operator profile exists, we'll send a one-time recovery link to your inbox. The link expires in 30 minutes.</p>
+    <form id="fp-form" autocomplete="on">
+      <div class="field" style="margin-bottom:14px">
+        <div class="field-row"><label for="fp-email">Recovery Email</label></div>
+        <div class="input-wrap">
+          <input id="fp-email" type="email" placeholder="operator@example.com" autocomplete="email" required>
+          <span class="pfx">✉</span>
+        </div>
+      </div>
+      <button type="submit" id="fp-submit-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),#4f52d1);border:none;border-radius:var(--r);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.4px;text-transform:uppercase;transition:transform .2s,box-shadow .2s">Send Recovery Link</button>
+      <div id="fp-msg" style="display:none;margin-top:12px;padding:10px 12px;border-radius:var(--r);font-size:11.5px;line-height:1.5"></div>
+    </form>
+    <p style="color:var(--t4);font-size:10.5px;margin-top:14px;margin-bottom:0">For security, the same response is shown whether or not the email is registered. If you don't receive an email within a few minutes, contact your platform administrator.</p>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════ Boot Sequence ═══════════════════ */
+(function(){
+  const boot = document.getElementById('boot');
+  const log = document.getElementById('boot-log');
+  const skip = document.getElementById('boot-skip');
+  const lines = [
+    ['tg','[0.001]','ok','booting',' ZeekGlare Intelligence Platform v2.1'],
+    ['tg','[0.032]','ok','init    ',' cryptography subsystem ── TLS 1.3'],
+    ['tg','[0.071]','ok','load    ',' /etc/zeekglare/firewall.rules (4,218 entries)'],
+    ['tg','[0.128]','ok','verify  ',' IP allowlist ── signature valid'],
+    ['tg','[0.184]','ok','attach  ',' 34 blueprints ── 23 service modules'],
+    ['tg','[0.212]','twarn','scan   ',' 128,441 IOC signatures indexed'],
+    ['tg','[0.241]','ok','listen  ',' :5000 (intel) :5001 (exploit) :5002 (recon)'],
+    ['tg','[0.289]','ok','session ',' JWT keys rotated'],
+    ['tg','[0.312]','ok','uplink  ',' threat feed synchronized (MITRE/NVD/OTX)'],
+    ['tg','[0.344]','ti','ready  ',' secure terminal online ░▒▓'],
+    ['tg','[0.380]','ok','AWAITING AUTHENTICATION...','',''],
+  ];
+  let done = false;
+  function finish(){
+    if(done)return; done=true;
+    boot.classList.add('done');
+    setTimeout(()=>boot.remove(),520);
+  }
+  skip.onclick = finish;
+  document.addEventListener('keydown', e=>{if(!done&&(e.key==='Escape'||e.key==='Enter'))finish();}, {once:false});
+  let i=0;
+  function step(){
+    if(i>=lines.length){ setTimeout(finish, 420); return; }
+    const [a,b,c,d,e] = lines[i];
+    const div = document.createElement('div');
+    div.className = 'ln';
+    div.innerHTML = `<span class="${a}">${b}</span> <span class="${c}">${d}</span>${e?'<span>'+e+'</span>':''}`;
+    log.appendChild(div);
+    i++;
+    setTimeout(step, 80 + Math.random()*90);
+  }
+  setTimeout(step, 250);
+})();
+
+/* ═══════════════════ Particle field ═══════════════════ */
+(function(){
+  const c=document.getElementById('particles'),x=c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;init()}
+  function init(){
+    pts=[];
+    const n=Math.floor((W*H)/11000);
+    for(let i=0;i<n;i++) pts.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+      r:Math.random()*1.5+.5,
+      o:Math.random()*.4+.12,
+      pulse:Math.random()*Math.PI*2
+    });
+  }
+  function draw(){
+    x.clearRect(0,0,W,H);
+    const t=Date.now()*.001;
+    for(const p of pts){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+      const o=p.o*(0.55+0.45*Math.sin(t+p.pulse));
+      x.beginPath();
+      x.arc(p.x,p.y,p.r,0,Math.PI*2);
+      x.fillStyle=`rgba(129,140,248,${o})`;
+      x.fill();
+    }
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
+        const d=dx*dx+dy*dy;
+        if(d<14000){
+          x.beginPath();
+          x.moveTo(pts[i].x,pts[i].y);
+          x.lineTo(pts[j].x,pts[j].y);
+          x.strokeStyle=`rgba(99,102,241,${.08*(1-d/14000)})`;
+          x.lineWidth=.5;
+          x.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize();draw();
+})();
+
+/* ═══════════════════ Matrix rain ═══════════════════ */
+(function(){
+  const c=document.getElementById('rain'),x=c.getContext('2d');
+  let W,H,cols,drops;
+  const glyphs='01アイウエオカキクケコサシスセソタチツテトナニヌネノ∑∆◎◉⟡░▒▓';
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;cols=Math.floor(W/14);drops=new Array(cols).fill(0).map(()=>Math.random()*H)}
+  function draw(){
+    if(!document.body.classList.contains('rain-on')){requestAnimationFrame(draw);return;}
+    x.fillStyle='rgba(3,5,12,.08)';
+    x.fillRect(0,0,W,H);
+    x.font='13px "JetBrains Mono",monospace';
+    for(let i=0;i<cols;i++){
+      const g=glyphs[Math.floor(Math.random()*glyphs.length)];
+      const y=drops[i];
+      x.fillStyle=`rgba(129,140,248,${0.85})`;
+      x.fillText(g,i*14,y);
+      x.fillStyle='rgba(34,211,238,.6)';
+      x.fillText(g,i*14,y-14);
+      drops[i]+=14;
+      if(drops[i]>H&&Math.random()>.975)drops[i]=0;
+    }
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize();draw();
+  document.getElementById('rain-toggle').onclick=()=>{
+    document.body.classList.toggle('rain-on');
+    document.getElementById('rain-st').textContent=document.body.classList.contains('rain-on')?'ON':'OFF';
+  };
+})();
+
+/* ═══════════════════ Typed subtitle ═══════════════════ */
+(function(){
+  const text='Secure Access Terminal ─ Authenticate to Continue';
+  const el=document.getElementById('typed-text');
+  let i=0;
+  function type(){
+    if(i<=text.length){el.textContent=text.slice(0,i);i++;setTimeout(type,40+(Math.random()*30))}
+  }
+  setTimeout(type,1200);
+})();
+
+/* ═══════════════════ Ops bar (clock / health / geo / uptime) ═══════════════════ */
+(function(){
+  const bootT = Date.now();
+  const clk = document.getElementById('clock');
+  const up = document.getElementById('uptime');
+  function fmtUp(s){
+    if(s<60)return s+'s';
+    if(s<3600)return Math.floor(s/60)+'m '+(s%60)+'s';
+    return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m';
+  }
+  function tick(){
+    const d = new Date();
+    clk.textContent = d.toISOString().slice(11,19)+' UTC';
+    up.textContent = fmtUp(Math.floor((Date.now()-bootT)/1000));
+  }
+  tick(); setInterval(tick, 1000);
+  // Health check
+  fetch('/healthz').then(r=>{
+    const ok = r.ok;
+    document.getElementById('health-dot').className='dot'+(ok?'':' warn');
+    document.getElementById('health-txt').textContent = ok?'SECURE UPLINK':'DEGRADED';
+  }).catch(()=>{
+    document.getElementById('health-dot').className='dot down';
+    document.getElementById('health-txt').textContent='OFFLINE';
+  });
+  // Geo fingerprint (approx, via timezone)
+  try{
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '—';
+    document.getElementById('geo').textContent = tz;
+  }catch(e){}
+  // Node id (hash of UA)
+  try{
+    const ua = navigator.userAgent;
+    let h=0; for(let i=0;i<ua.length;i++) h=(h*31+ua.charCodeAt(i))|0;
+    document.getElementById('node-id').textContent = 'ZG-' + (Math.abs(h)%9000+1000);
+  }catch(e){}
+})();
+
+/* ═══════════════════ Live stats (real backend data) ═══════════════════ */
+window.__loginStats = null;
+function _esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _sevClass(c){if(c>=9)return'r';if(c>=7)return'a';if(c>=4)return'c';return'g';}
+
+function paintTicker(stats){
+  const track = document.getElementById('ticker-track');
+  const fallback = [
+    '<span class="g">OK</span> Threat feed sync complete',
+    '<span class="c">INTEL</span> Awaiting authentication…',
+    '<span class="g">OK</span> TLS 1.3 handshake — secure',
+  ];
+  const items = [];
+  if(stats && stats.cves && stats.cves.length){
+    stats.cves.forEach(c=>{
+      items.push('<span class="'+_sevClass(c.cvss)+'">'+_esc(c.id)+'</span> '+_esc(c.summary || 'CVE published')+(c.cvss?' — CVSS '+c.cvss.toFixed(1):''));
+    });
+  }
+  if(stats && stats.session_count){
+    items.push('<span class="g">INTEL</span> '+stats.session_count.toLocaleString()+' scan session'+(stats.session_count!==1?'s':'')+' archived on this node');
+  }
+  if(stats && stats.blocked_attempts){
+    items.push('<span class="r">BLOCKED</span> '+stats.blocked_attempts+' failed auth attempt'+(stats.blocked_attempts!==1?'s':''));
+  }
+  if(stats && stats.session_types){
+    const top = Object.entries(stats.session_types).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    top.forEach(([t,n])=>items.push('<span class="c">RECON</span> '+n+' '+_esc(t)+' scan'+(n!==1?'s':'')));
+  }
+  if(!items.length) items.push(...fallback);
+  const line = items.map(m=>'<span>◆ '+m+'</span>').join('');
+  track.innerHTML = line + line;
+}
+
+function paintSidePanel(stats){
+  if(!stats) return;
+  document.getElementById('m-cves').textContent = stats.cve_count || 0;
+  document.getElementById('m-cves-d').textContent = stats.cves && stats.cves.length ? (stats.cves.length+' tracked') : 'no data';
+  document.getElementById('m-blocked').textContent = (stats.blocked_attempts || 0).toLocaleString();
+  document.getElementById('m-blocked-d').textContent = (stats.blocked_attempts ? '+' + stats.blocked_attempts : 'all clear');
+  document.getElementById('m-blocked-d').className = stats.blocked_attempts ? 'delta neg' : 'delta';
+  // Critical CVEs (CVSS ≥ 9) derived from the live CVE list
+  const crit = (stats.cves || []).filter(c => (c.cvss || 0) >= 9).length;
+  const critEl = document.getElementById('m-crit');
+  const critDel = document.getElementById('m-crit-d');
+  critEl.textContent = crit;
+  critEl.style.color = crit > 0 ? '#fca5a5' : '';
+  critDel.textContent = crit > 0 ? 'CVSS ≥ 9.0 ⚠' : 'CVSS ≥ 9.0 · clear';
+  critDel.className = crit > 0 ? 'delta neg' : 'delta';
+}
+
+(async function(){
+  paintTicker(null);
+  try{
+    const r = await fetch('/api/public/login-stats', {cache:'no-store'});
+    if(!r.ok) throw new Error('http '+r.status);
+    const stats = await r.json();
+    window.__loginStats = stats;
+    paintTicker(stats);
+    paintSidePanel(stats);
+  }catch(e){
+    console.warn('login-stats unavailable', e);
+    paintTicker(null);
+  }
+})();
+
+/* ═══════════════════ Secure log feed (interleaved with real CVEs) ═══════════════════ */
+(function(){
+  const log = document.getElementById('sp-log-inner');
+  if(!log) return;
+  const baseEvents = [
+    ['ok','conn','secure uplink established'],
+    ['ok','fw','rule match ── drop'],
+    ['in','auth','session keys rotated'],
+    ['ok','sync','threat feed synchronized'],
+    ['ok','cert','tls cert valid · 89d remaining'],
+    ['in','dns','anomaly score 0.32 OK'],
+    ['ok','sign','MITRE ATT&CK signatures loaded'],
+    ['er','block','malformed TLS ClientHello'],
+    ['in','watch','scanner telemetry 41ms'],
+    ['ok','rotate','jwt signing key cycled'],
+    ['ok','cache','ioc hit ratio 97%'],
+    ['in','ops','operator handshake pending'],
+  ];
+  function buildEvents(){
+    const stats = window.__loginStats;
+    const ev = baseEvents.slice();
+    if(stats && stats.cves && stats.cves.length){
+      stats.cves.slice(0,8).forEach(c=>{
+        const cls = c.cvss>=9?'er':(c.cvss>=7?'wn':'in');
+        ev.push([cls,'cve', (c.id||'CVE') + (c.cvss?(' · CVSS '+c.cvss.toFixed(1)):'') ]);
+      });
+    }
+    if(stats && stats.session_count){
+      ev.push(['ok','intel', stats.session_count + ' sessions archived']);
+    }
+    if(stats && stats.active_users){
+      ev.push(['in','users', stats.active_users + ' operators registered']);
+    }
+    if(stats && stats.blocked_attempts){
+      ev.push(['wn','rate', stats.blocked_attempts + ' failed auth recorded']);
+    }
+    // shuffle
+    for(let i=ev.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ev[i],ev[j]]=[ev[j],ev[i]];}
+    return ev;
+  }
+  let pool = buildEvents();
+  let i = 0;
+  function nxt(){
+    if(i % pool.length === 0) pool = buildEvents();
+    if(log.children.length > 8) log.removeChild(log.firstChild);
+    const [c,tag,msg] = pool[i%pool.length];
+    const t = new Date().toISOString().slice(11,19);
+    const el = document.createElement('div');
+    el.className = 'log-ln';
+    el.innerHTML = `<span class="t">${t}</span> <span class="${c}">[${tag}]</span> ${msg}`;
+    log.appendChild(el);
+    i++;
+    setTimeout(nxt, 1200 + Math.random()*1800);
+  }
+  setTimeout(nxt, 2000);
+})();
+
+/* ═══════════════════ 3D card tilt + spotlight ═══════════════════ */
+(function(){
+  const card = document.getElementById('card');
+  document.addEventListener('mousemove', e=>{
+    const mx = (e.clientX / window.innerWidth)*100;
+    const my = (e.clientY / window.innerHeight)*100;
+    document.documentElement.style.setProperty('--mx', mx+'%');
+    document.documentElement.style.setProperty('--my', my+'%');
+  });
+  card.addEventListener('mousemove', e=>{
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    const ry = (px - 0.5) * 7;
+    const rx = -(py - 0.5) * 7;
+    card.style.transform = `translateY(0) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    card.style.setProperty('--cmx', (px*100)+'%');
+    card.style.setProperty('--cmy', (py*100)+'%');
+  });
+  card.addEventListener('mouseleave', ()=>{
+    card.style.transform = 'translateY(0) rotateX(0) rotateY(0)';
+  });
+})();
+
+/* ═══════════════════ Form logic ═══════════════════ */
+const form    = document.getElementById('login-form');
+const userInp = document.getElementById('username');
+const passInp = document.getElementById('password');
+const btn     = document.getElementById('submit-btn');
+const msgBox  = document.getElementById('msg-box');
+const notice  = document.getElementById('default-notice');
+const card    = document.getElementById('card');
+const pwStrength = document.getElementById('pw-strength');
+const capsHint = document.getElementById('caps-hint');
+const userHint = document.getElementById('user-hint');
+const kbPulse = document.getElementById('kb-pulse');
+
+const urlp = new URLSearchParams(location.search);
+if (!urlp.has('e')) notice.style.display = 'flex';
+
+function showMsg(text, type) {
+  msgBox.textContent = text;
+  msgBox.className   = type;
+  msgBox.style.display = 'block';
+}
+function clearMsg() {
+  msgBox.style.display = 'none';
+  userInp.classList.remove('error-input');
+  passInp.classList.remove('error-input');
+}
+
+/* Password visibility toggle */
+document.getElementById('pw-toggle').onclick = () => {
+  const on = passInp.type === 'password';
+  passInp.type = on ? 'text' : 'password';
+  document.getElementById('pw-toggle').textContent = on ? '🙈' : '👁';
+};
+
+/* Caps Lock detection */
+function handleCaps(e){
+  const on = e.getModifierState && e.getModifierState('CapsLock');
+  capsHint.classList.toggle('on', on);
+  capsHint.classList.toggle('warn', on);
+}
+passInp.addEventListener('keydown', handleCaps);
+passInp.addEventListener('keyup', handleCaps);
+
+/* Password strength meter */
+function pwScore(p){
+  let s=0;
+  if(p.length>=8)s++;
+  if(p.length>=12)s++;
+  if(/[A-Z]/.test(p)&&/[a-z]/.test(p))s++;
+  if(/\d/.test(p)&&/[^A-Za-z0-9]/.test(p))s++;
+  return Math.min(s,4);
+}
+passInp.addEventListener('input', ()=>{
+  const s = pwScore(passInp.value);
+  pwStrength.className = 'pw-strength s'+s;
+});
+
+/* Username hint — agent callsign */
+userInp.addEventListener('input', ()=>{
+  const v = userInp.value.trim();
+  if(!v){userHint.classList.remove('on');return;}
+  // Fake agent classification based on hash
+  let h=0; for(let i=0;i<v.length;i++)h=(h*31+v.charCodeAt(i))|0;
+  const ranks=['OPERATIVE','ANALYST','HANDLER','ROOT'];
+  userHint.textContent = ranks[Math.abs(h)%ranks.length] + ' · ID ' + (Math.abs(h)%9000+1000);
+  userHint.classList.add('on');
+});
+
+/* Keystroke heartbeat */
+[userInp,passInp].forEach(el=>{
+  el.addEventListener('input', ()=>{
+    kbPulse.classList.remove('beat');
+    void kbPulse.offsetWidth;
+    kbPulse.classList.add('beat');
+  });
+});
+
+/* Keyboard shortcut: / focuses username */
+document.addEventListener('keydown', e=>{
+  if(e.key==='/' && document.activeElement.tagName!=='INPUT'){
+    e.preventDefault();
+    userInp.focus();
+  }
+});
+
+/* Submit handler */
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  clearMsg();
+
+  const username = userInp.value.trim();
+  const password = passInp.value;
+  const next     = document.getElementById('next-input').value || '/';
+
+  if (!username || !password) {
+    showMsg('Operator ID and Cipher are required.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="btn-spinner"></span> Verifying credentials';
+  card.classList.add('scanning');
+
+  try {
+    const res = await fetch('/auth/login', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ username, password, next }),
+    });
+    const data = await res.json();
+
+    if (res.ok && data.twofa_required) {
+      // Trigger TOTP challenge flow
+      card.classList.remove('scanning');
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = '⟳ Authenticate';
+      open2faChallenge(data.pending, data.next || '/');
+      return;
+    }
+    if (res.ok && data.ok) {
+      showMsg('✓ Access granted. Establishing secure session…', 'ok');
+      notice.style.display = 'none';
+      btn.innerHTML = '✓ Authorized';
+      setTimeout(() => {
+        card.style.animation = 'cardExit .5s ease forwards';
+        setTimeout(() => { window.location.href = data.redirect || '/'; }, 500);
+      }, 400);
+    } else {
+      const errMsg = data.error || 'Authentication denied.';
+      showMsg(errMsg, res.status === 429 ? 'warn' : 'err');
+      userInp.classList.add('error-input');
+      passInp.classList.add('error-input');
+      passInp.value = '';
+      pwStrength.className = 'pw-strength';
+      card.classList.remove('scanning');
+      card.style.animation = 'cardShake .4s ease';
+      setTimeout(() => card.style.animation = '', 500);
+      history.replaceState(null, '', '?e=1');
+      notice.style.display = 'none';
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = '⟳ Retry Authentication';
+    }
+  } catch (err) {
+    showMsg('Connection error. Secure uplink unreachable.', 'err');
+    card.classList.remove('scanning');
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.innerHTML = '⟳ Authenticate';
+  }
+});
+
+passInp.addEventListener('keydown', e => { if (e.key === 'Enter') form.dispatchEvent(new Event('submit')); });
+
+/* Alt auth stubs */
+function altAuth(kind){
+  const messages = {
+    passkey: 'Passkey / WebAuthn must be registered first. Sign in normally, then enable it from Settings → Security.',
+    totp:    'TOTP 2FA must be enrolled first. Sign in normally, then enable it from Settings → Security → Authenticator App.'
+  };
+  showMsg(messages[kind] || 'Unsupported auth method.', 'warn');
+}
+
+/* ── 2FA challenge modal ────────────────────────────────────────────────── */
+function open2faChallenge(pendingToken, nextUrl){
+  // Inject modal once
+  let m = document.getElementById('twofa-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'twofa-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(2,3,8,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:9999';
+    m.innerHTML = `
+      <div style="background:linear-gradient(180deg,rgba(10,15,34,.96),rgba(5,8,24,.98));border:1px solid rgba(99,102,241,.35);border-radius:18px;padding:32px 36px;max-width:400px;width:92%;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 80px rgba(99,102,241,.15)">
+        <div style="text-align:center;font-size:42px;margin-bottom:8px">🛡️</div>
+        <h2 style="font-size:18px;font-weight:800;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#e2e8f8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Two-Factor Verification</h2>
+        <p style="font-size:11.5px;color:#8ea4c8;text-align:center;margin-bottom:22px;line-height:1.5">Enter the 6-digit code from your authenticator app or a recovery code.</p>
+        <input id="twofa-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="16" placeholder="000 000" style="width:100%;padding:14px 16px;background:rgba(5,8,24,.85);border:1px solid #243060;border-radius:10px;color:#e2e8f8;font-size:18px;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:6px;outline:none">
+        <div id="twofa-err" style="display:none;margin-top:12px;padding:10px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:8px;font-size:12px"></div>
+        <button id="twofa-submit" style="width:100%;padding:13px;margin-top:16px;background:linear-gradient(135deg,#6366f1,#7c3aed);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;cursor:pointer;font-family:'Inter',sans-serif">Verify & Sign In</button>
+        <button id="twofa-cancel" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid #243060;border-radius:10px;color:#8ea4c8;font-size:11.5px;cursor:pointer;font-family:'Inter',sans-serif">Cancel</button>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  const codeInp = document.getElementById('twofa-code');
+  const errBox  = document.getElementById('twofa-err');
+  codeInp.value = '';
+  errBox.style.display = 'none';
+  setTimeout(() => codeInp.focus(), 50);
+
+  const submit = async () => {
+    const code = codeInp.value.trim();
+    if (!code) { errBox.textContent = 'Code required.'; errBox.style.display='block'; return; }
+    document.getElementById('twofa-submit').disabled = true;
+    document.getElementById('twofa-submit').textContent = 'Verifying…';
+    try {
+      const r = await fetch('/api/2fa/challenge', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({pending: pendingToken, code}),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        m.style.display = 'none';
+        window.location.href = d.redirect || nextUrl || '/';
+      } else {
+        errBox.textContent = d.error || 'Verification failed.';
+        errBox.style.display = 'block';
+        codeInp.value = '';
+        codeInp.focus();
+        document.getElementById('twofa-submit').disabled = false;
+        document.getElementById('twofa-submit').textContent = 'Verify & Sign In';
+      }
+    } catch(err) {
+      errBox.textContent = 'Connection error.';
+      errBox.style.display = 'block';
+      document.getElementById('twofa-submit').disabled = false;
+      document.getElementById('twofa-submit').textContent = 'Verify & Sign In';
+    }
+  };
+  document.getElementById('twofa-submit').onclick = submit;
+  document.getElementById('twofa-cancel').onclick = () => { m.style.display='none'; };
+  codeInp.onkeydown = e => { if (e.key === 'Enter') submit(); };
+}
+
+/* Forgot password */
+function openFp(){
+  document.getElementById('fp-overlay').classList.add('on');
+  const m = document.getElementById('fp-msg');
+  if(m){ m.style.display='none'; m.textContent=''; }
+  setTimeout(()=>{ const ei=document.getElementById('fp-email'); if(ei) ei.focus(); }, 100);
+}
+function closeFp(){ document.getElementById('fp-overlay').classList.remove('on'); }
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') closeFp();
+});
+
+document.getElementById('fp-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const email = document.getElementById('fp-email').value.trim();
+  const btn = document.getElementById('fp-submit-btn');
+  const msg = document.getElementById('fp-msg');
+  if(!email){ return; }
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  msg.style.display = 'none';
+  try{
+    const r = await fetch('/auth/forgot-password', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email})
+    });
+    const d = await r.json().catch(()=>({}));
+    msg.style.display = 'block';
+    if(r.ok){
+      msg.style.background = 'rgba(34,197,94,.1)';
+      msg.style.border = '1px solid rgba(34,197,94,.25)';
+      msg.style.color = '#4ade80';
+      msg.textContent = d.message || 'If that email is registered, a recovery link has been sent. Check your inbox.';
+      btn.textContent = '✓ Sent';
+      setTimeout(closeFp, 3500);
+    } else {
+      msg.style.background = 'rgba(239,68,68,.1)';
+      msg.style.border = '1px solid rgba(239,68,68,.25)';
+      msg.style.color = '#fca5a5';
+      msg.textContent = d.error || 'Unable to process request. Please try again.';
+      btn.disabled = false;
+      btn.textContent = 'Send Recovery Link';
+    }
+  }catch(err){
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(239,68,68,.1)';
+    msg.style.border = '1px solid rgba(239,68,68,.25)';
+    msg.style.color = '#fca5a5';
+    msg.textContent = 'Connection error. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Send Recovery Link';
+  }
+});
+</script>
+</body>
+</html>

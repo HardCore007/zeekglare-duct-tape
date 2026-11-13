@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Health — ZeekGlare</title>
+<style>
+:root{--bg:#0b0f19;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--accent:#6366f1;}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px}
+h1{margin:0 0 16px;font-size:22px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:16px}
+.card h3{margin:0 0 10px;font-size:14px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1f2937}
+.row:last-child{border-bottom:none}.status{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.ok{background:var(--ok)}.warn{background:var(--warn)}.err{background:var(--err)}
+.value{font-weight:600}pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--muted);margin:0}
+button{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer}
+button:hover{opacity:.9}.refresh{margin-bottom:16px}
+</style>
+</head>
+<body>
+<h1>🩺 System Health</h1>
+<button class="refresh" onclick="loadAll()">Refresh</button>
+
+<div class="grid" id="overview">
+  <div class="card"><h3>Loading…</h3></div>
+</div>
+
+<div class="grid" id="services">
+  <div class="card"><h3>Services</h3><div class="row"><span>Loading…</span></div></div>
+</div>
+
+<div class="grid" id="tools">
+  <div class="card"><h3>Tools</h3><div class="row"><span>Loading…</span></div></div>
+</div>
+
+<div class="grid" id="external">
+  <div class="card"><h3>External APIs</h3><div class="row"><span>Loading…</span></div></div>
+</div>
+
+<script>
+async function j(url){const r=await fetch(url);if(!r.ok)throw new Error(r.status);return r.json()}
+function badge(ok){return ok===null?'<span class="status warn"></span>Unknown':ok?'<span class="status ok"></span>Up':'<span class="status err"></span>Down'}
+async function loadOverview(){
+  const d=await j('/api/health/overview');
+  const mem=d.memory||{};const disk=d.disk||{};
+  document.getElementById('overview').innerHTML=`
+    <div class="card"><h3>CPU</h3><div class="row"><span>Usage</span><span class="value">${d.cpu_percent??'N/A'}%</span></div><div class="row"><span>Cores</span><span class="value">${d.cpu_count??'N/A'}</span></div><div class="row"><span>Load</span><span class="value">${(d.loadavg||[]).join(' / ')}</span></div></div>
+    <div class="card"><h3>Memory</h3><div class="row"><span>Total</span><span class="value">${mem.total_mb??'N/A'} MB</span></div><div class="row"><span>Available</span><span class="value">${mem.available_mb??'N/A'} MB</span></div><div class="row"><span>Used</span><span class="value">${mem.percent??'N/A'}%</span></div></div>
+    <div class="card"><h3>Disk</h3><div class="row"><span>Total</span><span class="value">${disk.total_gb??'N/A'} GB</span></div><div class="row"><span>Free</span><span class="value">${disk.free_gb??'N/A'} GB</span></div><div class="row"><span>Used</span><span class="value">${disk.percent??'N/A'}%</span></div></div>
+    <div class="card"><h3>Uptime</h3><div class="row"><span>Seconds</span><span class="value">${d.uptime_seconds??'N/A'}</span></div><div class="row"><span>Hours</span><span class="value">${d.uptime_seconds?Math.round(d.uptime_seconds/3600):'N/A'}</span></div></div>`;
+}
+async function loadServices(){
+  const d=await j('/api/health/services');
+  let html='<div class="card"><h3>Services</h3>';
+  for(const [name,svc] of Object.entries(d)){
+    html+=`<div class="row"><span>${badge(svc.reachable)} ${name}</span><span class="value">${svc.reachable?(svc.latency_ms+'ms'):(svc.error||'Down')}</span></div>`;
+  }
+  html+='</div>';document.getElementById('services').innerHTML=html;
+}
+async function loadTools(){
+  const d=await j('/api/health/tools');
+  let html='<div class="card"><h3>Tools</h3>';
+  for(const [name,ok] of Object.entries(d.tools||{})){
+    html+=`<div class="row"><span>${badge(ok)} ${name}</span><span class="value">${ok?'Installed':'Missing'}</span></div>`;
+  }
+  html+='</div>';document.getElementById('tools').innerHTML=html;
+}
+async function loadExternal(){
+  const d=await j('/api/health/external');
+  let html='<div class="card"><h3>External APIs</h3>';
+  for(const [name,svc] of Object.entries(d.apis||{})){
+    const s=svc.ok===null?'Unknown':svc.ok?'Up':'Down';
+    html+=`<div class="row"><span>${name}</span><span class="value">${s}</span></div>`;
+  }
+  html+='</div><div class="card"><h3>Platform Checks</h3>';
+  for(const [name,svc] of Object.entries(d.platform||{})){
+    html+=`<div class="row"><span>${badge(svc.reachable)} ${name}</span><span class="value">${svc.reachable?(svc.status+' / '+svc.latency_ms+'ms'):(svc.error||'Down')}</span></div>`;
+  }
+  html+='</div>';document.getElementById('external').innerHTML=html;
+}
+async function loadAll(){try{await loadOverview();await loadServices();await loadTools();await loadExternal();}catch(e){console.error(e);alert('Error loading health data: '+e.message);}}
+loadAll();
+</script>
+</body>
+</html>

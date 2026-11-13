@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WatchDog — ZeekGlare Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Theme ─────────────────────────────────────────────────────────────── */
+:root{
+  --bg0:#080a0f;--bg1:#0e1118;--bg2:#141820;--bg3:#1b2030;--bg4:#222840;
+  --border:#232940;--border2:#2e3650;--border3:#3a4566;
+  --txt0:#dde3f5;--txt1:#8a93b0;--txt2:#4a5270;
+  --orange:#f08c00;--orange2:#ffa520;
+  --green:#2ecc71;--green2:#55e88a;
+  --red:#e05252;--red2:#f07070;
+  --blue:#4ec9e0;--blue2:#74ddf0;
+  --purple:#b07ef8;--purple2:#c89bff;
+  --gold:#f0c000;--silver:#9da3b4;--bronze:#b07840;
+  --trans:.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg0);color:var(--txt0);font-family:'Inter',system-ui,sans-serif;font-size:13px;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg1)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Top Bar ─────────────────────────────────────────────────────────── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:50px;background:var(--bg1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+  backdrop-filter:blur(8px);
+}
+.logo{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--txt0);white-space:nowrap;flex-shrink:0}
+.logo-icon{font-size:18px}
+.logo-sub{font-size:9.5px;color:var(--txt2);font-weight:400;letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
+.tb-sep{width:1px;height:22px;background:var(--border2);flex-shrink:0;margin:0 2px}
+.tb-link{font-size:11.5px;color:var(--txt1);text-decoration:none;padding:5px 11px;border-radius:5px;border:1px solid transparent;transition:var(--trans);white-space:nowrap}
+.tb-link:hover{color:var(--txt0);border-color:var(--border2);background:var(--bg3)}
+.tb-link.active{color:var(--orange);border-color:rgba(240,140,0,.35);background:rgba(240,140,0,.07)}
+.tb-spacer{flex:1}
+.live-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2);background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.2);padding:3px 10px;border-radius:10px;flex-shrink:0}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:livepulse 2s ease-in-out infinite}
+@keyframes livepulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(46,204,113,.5)}50%{opacity:.7;box-shadow:0 0 0 5px rgba(46,204,113,0)}}
+#last-refresh{font-size:11px;color:var(--txt2);white-space:nowrap}
+.btn-icon{display:flex;align-items:center;gap:5px;font-size:11px;padding:5px 11px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--txt1);cursor:pointer;transition:var(--trans);white-space:nowrap;font-family:inherit}
+.btn-icon:hover{background:var(--bg4);color:var(--txt0);border-color:var(--border3)}
+/* countdown ring */
+#countdown-wrap{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt2);flex-shrink:0}
+#countdown-ring{transform:rotate(-90deg)}
+#countdown-arc{stroke-dasharray:38;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+#main{margin-top:50px;padding:18px 20px;max-width:1700px;margin-left:auto;margin-right:auto}
+
+/* ── Stat Row ─────────────────────────────────────────────────────── */
+#stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:16px 18px;position:relative;overflow:hidden;
+  transition:border-color var(--trans);
+}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--orange))}
+.stat-card-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.stat-card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--card-bg,rgba(240,140,0,.1));flex-shrink:0}
+.stat-label{font-size:10.5px;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;font-weight:600}
+.stat-value{font-size:34px;font-weight:700;color:var(--txt0);line-height:1;font-variant-numeric:tabular-nums}
+.stat-sub{font-size:10.5px;color:var(--txt2);margin-top:5px}
+.stat-trend{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 6px;border-radius:4px;margin-top:4px}
+.stat-trend.up{background:rgba(46,204,113,.1);color:var(--green2)}
+.stat-trend.neutral{background:rgba(74,82,112,.15);color:var(--txt2)}
+
+/* ── Analytics Row ─────────────────────────────────────────────────── */
+#analytics-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.ap{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.ap-hd{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ap-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Source breakdown */
+.src-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.src-row:last-child{margin-bottom:0}
+.src-name{font-size:11px;color:var(--txt1);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-track{flex:1;height:7px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.src-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.src-count{font-size:11px;font-weight:600;color:var(--txt0);width:18px;text-align:right;flex-shrink:0}
+.src-num{font-size:10px;color:var(--txt2);margin-left:4px}
+
+/* Type distribution */
+.type-chips{display:flex;flex-wrap:wrap;gap:6px}
+.type-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--txt1);transition:var(--trans)}
+.type-chip:hover{border-color:var(--border2);color:var(--txt0)}
+.type-chip .tc-icon{font-size:13px}
+.type-chip .tc-count{font-size:10px;font-weight:700;color:var(--txt0);padding:1px 5px;border-radius:4px;background:var(--bg4)}
+.type-chip.has-active .tc-count{background:rgba(46,204,113,.15);color:var(--green2)}
+
+/* ── Leaderboard ─────────────────────────────────────────────────── */
+#lb-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:none}
+.lb-hd{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.lb-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+.lb-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);transition:var(--trans)}
+.lb-row:hover{border-color:var(--border2)}
+.lb-rank{font-size:12px;font-weight:700;width:22px;text-align:center;flex-shrink:0;color:var(--txt2)}
+.lb-rank.gold{color:var(--gold)}
+.lb-rank.silver{color:var(--silver)}
+.lb-rank.bronze{color:var(--bronze)}
+.lb-icon{font-size:14px;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-label{font-size:12px;font-weight:500;color:var(--txt0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-target{font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-bar-wrap{width:90px;flex-shrink:0}
+.lb-bar{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-bottom:3px}
+.lb-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--orange),var(--orange2));transition:width .6s}
+.lb-count{font-size:11px;font-weight:700;color:var(--orange);text-align:right}
+
+/* ── Section Headers ─────────────────────────────────────────────── */
+.section-hdr{display:flex;align-items:center;gap:8px;margin:18px 0 12px;font-size:10.5px;font-weight:700;color:var(--txt1);text-transform:uppercase;letter-spacing:.7px}
+.section-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.section-count{font-size:10px;color:var(--txt2);background:var(--bg3);border:1px solid var(--border);padding:1px 6px;border-radius:8px;font-weight:600}
+
+/* ── Scan Grid ─────────────────────────────────────────────────── */
+.scan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+
+.scan-card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:15px 16px;transition:border-color var(--trans),background var(--trans);
+  position:relative;overflow:hidden;
+}
+.scan-card:hover{border-color:var(--border2);background:var(--bg3)}
+.scan-card.active-card{border-color:rgba(46,204,113,.25)}
+.scan-card.active-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--green2))}
+.scan-card.done-card{opacity:.75}
+.scan-card.done-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border2)}
+
+.sc-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sc-icon-wrap{position:relative;flex-shrink:0}
+.sc-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--bg3);border:1px solid var(--border);transition:var(--trans)}
+.sc-ring{position:absolute;inset:-4px;border-radius:12px;border:2px solid var(--green);animation:ring-pulse 2.5s ease-in-out infinite;pointer-events:none}
+@keyframes ring-pulse{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:.2;transform:scale(1.06)}}
+.sc-info{flex:1;min-width:0}
+.sc-label{font-size:13px;font-weight:600;color:var(--txt0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.sc-source{font-size:10.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-badge{font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap;align-self:flex-start;flex-shrink:0;letter-spacing:.3px}
+.sc-badge.running{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.sc-badge.done{background:rgba(74,82,112,.12);color:var(--txt2);border:1px solid var(--border)}
+
+.sc-target{font-size:11px;color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:11px;font-family:'JetBrains Mono',monospace;background:var(--bg3);padding:4px 8px;border-radius:4px;border:1px solid var(--border)}
+
+.sc-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:11px}
+.sc-metric{padding:7px 8px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);text-align:center}
+.sc-metric .val{font-size:19px;font-weight:700;color:var(--txt0);line-height:1;font-variant-numeric:tabular-nums}
+.sc-metric .lbl{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.sc-metric.m-findings{border-color:rgba(240,140,0,.2);background:rgba(240,140,0,.06)}
+.sc-metric.m-findings .val{color:var(--orange)}
+.sc-metric.m-findings-hi{border-color:rgba(224,82,82,.25);background:rgba(224,82,82,.06)}
+.sc-metric.m-findings-hi .val{color:var(--red)}
+.sc-metric.m-findings-low{border-color:rgba(46,204,113,.2);background:rgba(46,204,113,.05)}
+.sc-metric.m-findings-low .val{color:var(--green)}
+
+.sc-progress{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.sc-progress-fill{height:100%;border-radius:2px;transition:width .6s ease;background:linear-gradient(90deg,var(--green),var(--green2))}
+.done-card .sc-progress-fill{background:var(--border2)}
+
+.sc-footer{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--txt2)}
+.sc-footer-src{display:flex;align-items:center;gap:4px}
+.sc-src-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── Empty States ─────────────────────────────────────────────── */
+.empty-block{text-align:center;padding:28px;color:var(--txt2);font-size:12px;background:var(--bg2);border:1px dashed var(--border);border-radius:8px}
+.empty-block svg{margin:0 auto 10px;display:block;opacity:.25}
+
+/* ── Activity Feed ─────────────────────────────────────────────── */
+#activity-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-top:16px;overflow:hidden}
+.feed-hd{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.feed-title{font-size:10.5px;font-weight:700;color:var(--txt1);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:6px}
+.feed-count{font-size:10px;padding:1px 6px;border-radius:6px;background:var(--bg3);color:var(--txt2);border:1px solid var(--border)}
+.feed-actions{display:flex;gap:6px;align-items:center}
+#activity-log{height:220px;overflow-y:auto;position:relative}
+.timeline-line{position:absolute;left:46px;top:0;bottom:0;width:1px;background:var(--border);pointer-events:none}
+.al-entry{display:flex;gap:0;padding:6px 16px 6px 0;border-bottom:1px solid rgba(35,41,64,.5);position:relative;align-items:flex-start;min-height:32px}
+.al-time{font-size:10px;color:var(--txt2);white-space:nowrap;flex-shrink:0;width:44px;padding:2px 0 0 10px;font-family:'JetBrains Mono',monospace}
+.al-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin:4px 10px 0 10px;border:2px solid var(--bg2);position:relative;z-index:1}
+.al-body{flex:1;min-width:0}
+.al-src{display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:4px;margin-right:5px;vertical-align:middle}
+.al-src.zeekglare{background:rgba(240,140,0,.12);color:var(--orange)}
+.al-src.xploiter{background:rgba(224,82,82,.12);color:var(--red)}
+.al-src.misc{background:rgba(176,126,248,.12);color:var(--purple)}
+.al-msg{font-size:11.5px;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Toast ─────────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:300;background:var(--bg3);border:1px solid var(--border2);padding:10px 16px;border-radius:7px;font-size:12px;color:var(--txt0);transform:translateY(16px);opacity:0;transition:.22s;pointer-events:none;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ── Result Summary Modal ────────────────────────────────────── */
+#modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
+#modal-backdrop.open{display:flex}
+#summary-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:100%;max-width:560px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+#modal-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+#modal-icon{font-size:22px;flex-shrink:0}
+#modal-title{flex:1;font-size:14px;font-weight:700;color:var(--txt0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#modal-close{background:none;border:none;color:var(--txt2);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:4px;transition:color var(--trans);line-height:1}
+#modal-close:hover{color:var(--txt0);background:var(--bg4)}
+#modal-body{flex:1;overflow-y:auto;padding:16px 18px}
+
+/* Modal content sections */
+.ms-section{margin-bottom:18px}
+.ms-section:last-child{margin-bottom:0}
+.ms-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.ms-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.ms-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ms-stat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;text-align:center}
+.ms-stat .v{font-size:24px;font-weight:700;color:var(--txt0);line-height:1;font-variant-numeric:tabular-nums}
+.ms-stat .l{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-top:4px}
+.ms-stat.accent-orange .v{color:var(--orange)}
+.ms-stat.accent-green  .v{color:var(--green)}
+.ms-stat.accent-blue   .v{color:var(--blue)}
+.ms-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(35,41,64,.5);font-size:12px}
+.ms-row:last-child{border-bottom:none}
+.ms-row .key{color:var(--txt2)}
+.ms-row .val{color:var(--txt0);font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right;max-width:300px;word-break:break-all}
+.ms-finding-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px}
+.ms-finding-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--orange),var(--orange2));transition:width .5s}
+.ms-status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.ms-status-badge.done{background:rgba(74,82,112,.15);color:var(--txt2);border:1px solid var(--border)}
+.ms-status-badge.running{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.25)}
+.ms-timeline{display:flex;flex-direction:column;gap:5px}
+.ms-tl-row{display:flex;gap:8px;align-items:flex-start;font-size:11px}
+.ms-tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ms-tl-time{color:var(--txt2);font-family:'JetBrains Mono',monospace;font-size:10px;flex-shrink:0;width:65px}
+.ms-tl-msg{color:var(--txt1);flex:1;min-width:0;word-break:break-word}
+.ms-tl-row.entry-ok .ms-tl-msg{color:var(--green2)}
+.ms-tl-row.entry-err .ms-tl-msg{color:var(--red2)}
+
+/* ── Clear completed button ──────────────────────────────────── */
+.btn-danger{background:rgba(224,82,82,.08)!important;border-color:rgba(224,82,82,.3)!important;color:var(--red2)!important}
+.btn-danger:hover{background:rgba(224,82,82,.18)!important;border-color:rgba(224,82,82,.5)!important;color:#fff!important}
+
+/* ── Loading ─────────────────────────────────────────────────── */
+#loading{position:fixed;inset:0;background:var(--bg0);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:14px;transition:opacity .3s}
+#loading.hide{opacity:0;pointer-events:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-size:12.5px;color:var(--txt2)}
+
+/* ── Heatmap ─────────────────────────────────────────────── */
+#heatmap-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.hm-hd{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.hm-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+#heatmap-grid{display:flex;gap:3px;align-items:flex-end;height:60px}
+.hm-bar{flex:1;border-radius:2px 2px 0 0;background:rgba(240,140,0,.2);min-width:4px;transition:height .5s cubic-bezier(.4,0,.2,1),background .3s;position:relative;cursor:pointer}
+.hm-bar:hover{background:var(--orange)!important}
+.hm-bar .hm-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border2);border-radius:4px;padding:3px 7px;font-size:9px;color:var(--txt0);white-space:nowrap;z-index:10;pointer-events:none}
+.hm-bar:hover .hm-tip{display:block}
+.hm-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:8px;color:var(--txt2);font-family:'JetBrains Mono',monospace}
+
+/* ── Target Freq ─────────────────────────────────────────── */
+#target-freq{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.tf-hd{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.tf-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+.tf-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tf-row:last-child{margin-bottom:0}
+.tf-target{font-size:11px;color:var(--txt1);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace}
+.tf-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.tf-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--blue2));transition:width .6s}
+.tf-count{font-size:11px;font-weight:600;color:var(--txt0);width:20px;text-align:right}
+
+/* ── Live Elapsed Timer ──────────────────────────────────── */
+.sc-live-timer{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green2);animation:timerBlink 1.5s ease infinite}
+@keyframes timerBlink{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── Scan Card user badge ────────────────────────────────── */
+.sc-user{font-size:9px;padding:1px 6px;border-radius:4px;background:rgba(78,201,224,.08);color:var(--blue);border:1px solid rgba(78,201,224,.15);font-family:'JetBrains Mono',monospace}
+
+/* ── Export button ───────────────────────────────────────── */
+.btn-export{background:rgba(78,201,224,.08)!important;border-color:rgba(78,201,224,.25)!important;color:var(--blue)!important}
+.btn-export:hover{background:rgba(78,201,224,.18)!important}
+
+/* ── Keyboard hints ──────────────────────────────────────── */
+.kb-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:12px;font-size:10px;color:var(--txt2);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;opacity:.5;transition:opacity .3s;z-index:50}
+.kb-hint:hover{opacity:1}
+.kb-hint kbd{padding:1px 5px;border-radius:3px;background:var(--bg4);border:1px solid var(--border2);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--txt0);margin:0 2px}
+
+/* ── Sound toggle ────────────────────────────────────────── */
+.sound-btn{position:relative}
+.sound-btn.muted{opacity:.4}
+.sound-btn.muted::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--red);transform:rotate(-30deg)}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media(max-width:900px){
+  #analytics-row,#analytics-row-2{grid-template-columns:1fr}
+  #topbar{flex-wrap:wrap;height:auto;padding:8px 14px;gap:8px}
+  .tb-spacer{display:none}
+}
+@media(max-width:640px){
+  #stat-row{grid-template-columns:repeat(2,1fr)}
+  .scan-grid{grid-template-columns:1fr}
+  .kb-hint{display:none}
+  #heatmap-panel{overflow-x:auto}
+}
+@media(max-width:480px){
+  #stat-row{grid-template-columns:1fr}
+  .stat-value{font-size:24px}
+  #main{padding:12px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Connecting to scan sources…</p>
+</div>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo">
+    <span class="logo-icon">🐾</span>
+    <div>
+      <div>ZeekGlare <strong style="color:var(--orange)">WatchDog</strong></div>
+      <div class="logo-sub">Live Monitor</div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <a class="tb-link" href="/" target="_self">Intelligence</a>
+  <a class="tb-link" href="/xploiter/" target="_blank">Xpl03tEr</a>
+  <a class="tb-link" href="/misc/">Misc Tools</a>
+  <a class="tb-link active" href="/watchdog">WatchDog</a>
+  <div class="tb-spacer"></div>
+  <!-- Countdown ring -->
+  <div id="countdown-wrap">
+    <svg id="countdown-ring" width="16" height="16" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="6" fill="none" stroke="var(--border2)" stroke-width="2"/>
+      <circle id="countdown-arc" cx="8" cy="8" r="6" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-dasharray="38" stroke-dashoffset="0"/>
+    </svg>
+    <span id="next-refresh">5s</span>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="live-badge"><div class="live-dot"></div>Live</div>
+  <div class="tb-sep"></div>
+  <span id="last-refresh">–</span>
+  <button class="btn-icon" onclick="fetchStatus()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+    Refresh
+  </button>
+  <button class="btn-icon btn-export" onclick="exportSummary()" title="Export scan summary to clipboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export
+  </button>
+  <button class="btn-icon sound-btn" id="sound-btn" onclick="toggleSound()" title="Toggle sound notifications">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+  </button>
+  <button class="btn-icon btn-danger" id="clear-btn" onclick="clearCompleted()" title="Remove all completed scans from memory" style="display:none">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    Clear Completed
+  </button>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Stat Row -->
+  <div id="stat-row">
+    <div class="stat-card" style="--card-accent:var(--blue);--card-bg:rgba(78,201,224,.08)">
+      <div class="stat-card-inner">
+        <div>
+          <div class="stat-label">Total Scans</div>
+          <div class="stat-value" id="st-total">0</div>
+        </div>
+        <div class="stat-card-icon" style="--card-bg:rgba(78,201,224,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+      </div>
+      <div class="stat-sub">All sources combined</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--green);--card-bg:rgba(46,204,113,.08)">
+      <div class="stat-card-inner">
+        <div>
+          <div class="stat-label">Active</div>
+          <div class="stat-value" id="st-active">0</div>
+        </div>
+        <div class="stat-card-icon" style="background:rgba(46,204,113,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+      </div>
+      <div id="st-active-sub" class="stat-sub">Currently running</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--txt2);--card-bg:rgba(74,82,112,.08)">
+      <div class="stat-card-inner">
+        <div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-value" id="st-done">0</div>
+        </div>
+        <div class="stat-card-icon" style="background:rgba(74,82,112,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--txt2)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+      <div class="stat-sub">Finished scans</div>
+    </div>
+    <div class="stat-card" style="--card-accent:var(--orange);--card-bg:rgba(240,140,0,.08)">
+      <div class="stat-card-inner">
+        <div>
+          <div class="stat-label">Total Findings</div>
+          <div class="stat-value" id="st-findings">0</div>
+        </div>
+        <div class="stat-card-icon" style="background:rgba(240,140,0,.1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+      </div>
+      <div class="stat-sub">Across all sources</div>
+    </div>
+  </div>
+
+  <!-- Analytics Row -->
+  <div id="analytics-row">
+    <!-- Source Breakdown -->
+    <div class="ap">
+      <div class="ap-hd">Source Breakdown</div>
+      <div id="src-breakdown">
+        <div class="src-row"><div class="src-name">ZeekGlare</div><div class="src-track"><div class="src-fill" id="sb-zg" style="background:var(--orange);width:0%"></div></div><div class="src-count" id="sc-zg">0</div></div>
+        <div class="src-row"><div class="src-name">Xpl03tEr</div><div class="src-track"><div class="src-fill" id="sb-xpl" style="background:var(--red);width:0%"></div></div><div class="src-count" id="sc-xpl">0</div></div>
+        <div class="src-row"><div class="src-name">Misc Tools</div><div class="src-track"><div class="src-fill" id="sb-misc" style="background:var(--purple);width:0%"></div></div><div class="src-count" id="sc-misc">0</div></div>
+      </div>
+    </div>
+    <!-- Scan Type Distribution -->
+    <div class="ap">
+      <div class="ap-hd">Scan Types</div>
+      <div id="type-chips" class="type-chips">
+        <div class="type-chip" style="color:var(--txt2)"><span class="tc-icon">📡</span><span>No scans yet</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap + Target Frequency -->
+  <div id="analytics-row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div id="heatmap-panel">
+      <div class="hm-hd">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+        24h Activity Heatmap
+      </div>
+      <div id="heatmap-grid"></div>
+      <div class="hm-labels"><span>24h ago</span><span>12h</span><span>Now</span></div>
+    </div>
+    <div id="target-freq">
+      <div class="tf-hd">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Top Targets
+      </div>
+      <div id="target-freq-list"><div style="color:var(--txt2);font-size:11px">No targets yet</div></div>
+    </div>
+  </div>
+
+  <!-- Findings Leaderboard -->
+  <div id="lb-panel">
+    <div class="lb-hd">🏆 Findings Leaderboard</div>
+    <div id="lb-list" class="lb-list"></div>
+  </div>
+
+  <!-- Active Scans -->
+  <div class="section-hdr">
+    <div class="section-dot" style="background:var(--green)"></div>
+    Active Scans
+    <span class="section-count" id="active-count">0</span>
+  </div>
+  <div id="active-grid" class="scan-grid"></div>
+  <div id="empty-active" class="empty-block" style="display:none">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    No active scans — launch a scan from any dashboard
+  </div>
+
+  <!-- Completed Scans -->
+  <div class="section-hdr">
+    <div class="section-dot" style="background:var(--txt2)"></div>
+    Completed
+    <span class="section-count" id="done-count">0</span>
+  </div>
+  <div id="done-grid" class="scan-grid"></div>
+  <div id="empty-done" class="empty-block" style="display:none">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polyline points="20 6 9 17 4 12"/></svg>
+    No completed scans yet
+  </div>
+
+  <!-- Activity Feed -->
+  <div id="activity-panel">
+    <div class="feed-hd">
+      <div class="feed-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Activity Feed
+        <span class="feed-count" id="feed-count">0</span>
+      </div>
+      <div class="feed-actions">
+        <button class="btn-icon" onclick="clearFeed()">Clear</button>
+      </div>
+    </div>
+    <div id="activity-log">
+      <div class="timeline-line"></div>
+      <div style="padding:30px;text-align:center;color:var(--txt2);font-size:12px">Waiting for scan activity…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result Summary Modal -->
+<div id="modal-backdrop" onclick="closeModal(event)">
+  <div id="summary-modal">
+    <div id="modal-head">
+      <div id="modal-icon">📡</div>
+      <div id="modal-title">Scan Summary</div>
+      <button id="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Keyboard Hints -->
+<div class="kb-hint">
+  <span><kbd>R</kbd> Refresh</span>
+  <span><kbd>C</kbd> Clear</span>
+  <span><kbd>S</kbd> Sound</span>
+  <span><kbd>E</kbd> Export</span>
+  <span><kbd>Esc</kbd> Close</span>
+</div>
+
+<!-- Cursor Glow -->
+<div id="wd-cursor-glow" style="position:fixed;width:250px;height:250px;border-radius:50%;pointer-events:none;z-index:0;opacity:0;transition:opacity .3s;background:radial-gradient(circle,rgba(240,140,0,.04) 0%,rgba(240,140,0,.015) 30%,transparent 70%);transform:translate(-50%,-50%)"></div>
+
+<script>
+/* ── Config ─────────────────────────────────────────── */
+const MISC_PORT = 5002;
+const POLL_MS   = 5000;
+
+let prevScans   = {};
+let feedLines   = [];
+const MAX_FEED  = 300;
+let countdown   = POLL_MS / 1000;
+let countdownTimer = null;
+let scanStore   = {};   // id → scan object cached for summary modal
+
+/* ── Source / Type helpers ─────────────────────────── */
+const SRC_COLOR = {
+  zeekglare: "var(--orange)",
+  xploiter:  "var(--red)",
+  misc:      "var(--purple)"
+};
+const TYPE_ICON = {
+  domain:"🌐", ports:"🔍", crawler:"🕷️", paramhawk:"⚡",
+  threatblitz:"💣", fuzzer:"🪓", wpscan:"📝",
+  exploit:"🎯", misc:"🛠️"
+};
+const TYPE_LABEL = {
+  domain:"Domain", ports:"Ports", crawler:"Crawler", paramhawk:"ParamHawk",
+  threatblitz:"ThreatBlitz", fuzzer:"Fuzzer", wpscan:"WPScan",
+  exploit:"Exploit", misc:"Misc"
+};
+
+function srcColor(src){ return SRC_COLOR[src] || "var(--blue)"; }
+function srcClass(src){ return src || "misc"; }
+
+/* ── Countdown ring ─────────────────────────────────── */
+function startCountdown(){
+  if(countdownTimer) clearInterval(countdownTimer);
+  countdown = POLL_MS / 1000;
+  updateCountdownRing();
+  countdownTimer = setInterval(() => {
+    countdown = Math.max(0, countdown - 1);
+    updateCountdownRing();
+    if(countdown === 0){
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }, 1000);
+}
+
+function updateCountdownRing(){
+  const total = POLL_MS / 1000;
+  const pct   = countdown / total;
+  const circ  = 2 * Math.PI * 6; // r=6
+  const offset = circ * (1 - pct);
+  const arc = document.getElementById('countdown-arc');
+  const nr  = document.getElementById('next-refresh');
+  if(arc) arc.style.strokeDashoffset = offset;
+  if(nr)  nr.textContent = countdown + 's';
+}
+
+/* ── Fetch ─────────────────────────────────────────── */
+async function fetchStatus(){
+  startCountdown();
+  try{
+    const r = await fetch("/api/watchdog/status");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    renderDashboard(d);
+    document.getElementById("last-refresh").textContent = new Date().toLocaleTimeString();
+    document.getElementById("loading").classList.add("hide");
+  }catch(e){
+    // keep old data silently
+  }
+}
+
+/* ── Render Dashboard ─────────────────────────────── */
+function renderDashboard(d){
+  const {scans, stats} = d;
+  const active    = scans.filter(s => !s.done);
+  const completed = scans.filter(s => s.done);
+  // Cache all scans for modal lookup
+  scans.forEach(s => { scanStore[s.id] = s; });
+
+  // Stats
+  document.getElementById("st-total").textContent    = stats.total;
+  document.getElementById("st-active").textContent   = stats.active;
+  document.getElementById("st-done").textContent     = stats.completed;
+  document.getElementById("st-findings").textContent = stats.findings;
+  document.getElementById("active-count").textContent = active.length;
+  document.getElementById("done-count").textContent   = completed.length;
+  document.getElementById("st-active-sub").textContent =
+    active.length ? active.map(s => s.label).slice(0,2).join(', ') + (active.length>2?'…':'') : 'None running';
+
+  renderSourceBreakdown(scans);
+  renderTypeChips(scans, active);
+  renderLeaderboard(scans);
+
+  renderGrid("active-grid", active);
+  renderGrid("done-grid",  completed);
+
+  document.getElementById("empty-active").style.display = active.length   ? "none" : "block";
+  document.getElementById("empty-done").style.display   = completed.length ? "none" : "block";
+
+  // Show/hide "Clear Completed" button
+  const clearBtn = document.getElementById("clear-btn");
+  if (clearBtn) clearBtn.style.display = completed.length ? "flex" : "none";
+
+  // Activity feed diffs
+  scans.forEach(s => {
+    const prev = prevScans[s.id];
+    if(!prev){
+      addFeedEntry(s.source, `Started — ${s.label} → ${s.target || "—"}`, s.id);
+    } else {
+      const df = s.findings - (prev.findings || 0);
+      if(df > 0)
+        addFeedEntry(s.source, `${s.label} · +${df} finding${df>1?"s":""} (${s.findings} total)`, s.id);
+      if(s.done && !prev.done)
+        addFeedEntry(s.source, `✓ Completed — ${s.label} · ${s.findings} finding${s.findings!==1?"s":""} in ${fmtElapsed(s.elapsed)}`, s.id);
+    }
+    prevScans[s.id] = {...s};
+  });
+}
+
+/* ── Source Breakdown ─────────────────────────────── */
+function renderSourceBreakdown(scans){
+  const counts = {zeekglare:0, xploiter:0, misc:0};
+  scans.forEach(s => { if(counts[s.source]!==undefined) counts[s.source]++; });
+  const total = scans.length || 1;
+  [['zg','zeekglare'],['xpl','xploiter'],['misc','misc']].forEach(([k,src]) => {
+    const c = counts[src];
+    const fill = document.getElementById('sb-'+k);
+    const cnt  = document.getElementById('sc-'+k);
+    if(fill) fill.style.width = Math.round(c/total*100) + '%';
+    if(cnt)  cnt.textContent  = c;
+  });
+}
+
+/* ── Type Distribution Chips ─────────────────────── */
+function renderTypeChips(scans, active){
+  if(!scans.length){
+    document.getElementById('type-chips').innerHTML = '<div class="type-chip" style="color:var(--txt2)"><span>No scans yet</span></div>';
+    return;
+  }
+  const typeCounts = {};
+  const typeActive = {};
+  scans.forEach(s => {
+    typeCounts[s.type] = (typeCounts[s.type]||0) + 1;
+    if(!s.done) typeActive[s.type] = true;
+  });
+  document.getElementById('type-chips').innerHTML = Object.entries(typeCounts)
+    .sort((a,b) => b[1]-a[1])
+    .map(([t,c]) => `
+      <div class="type-chip ${typeActive[t]?'has-active':''}">
+        <span class="tc-icon">${TYPE_ICON[t]||"📡"}</span>
+        <span>${TYPE_LABEL[t]||t}</span>
+        <span class="tc-count">${c}</span>
+      </div>`)
+    .join('');
+}
+
+/* ── Leaderboard ─────────────────────────────────── */
+function renderLeaderboard(scans){
+  const withFindings = scans.filter(s => s.findings > 0).sort((a,b) => b.findings - a.findings).slice(0,5);
+  const panel = document.getElementById('lb-panel');
+  if(!withFindings.length){ panel.style.display='none'; return; }
+  panel.style.display = 'block';
+  const max = withFindings[0].findings;
+  const rankLabels = ['🥇','🥈','🥉','4','5'];
+  const rankClasses = ['gold','silver','bronze','',''];
+  document.getElementById('lb-list').innerHTML = withFindings.map((s,i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${rankClasses[i]}">${rankLabels[i]}</div>
+      <div class="lb-icon">${TYPE_ICON[s.type]||"📡"}</div>
+      <div class="lb-info">
+        <div class="lb-label">${esc(s.label)}</div>
+        <div class="lb-target">${esc(s.target||"—")}</div>
+      </div>
+      <div class="lb-bar-wrap">
+        <div class="lb-bar"><div class="lb-fill" style="width:${Math.round(s.findings/max*100)}%"></div></div>
+        <div class="lb-count">${s.findings}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Scan Grid ─────────────────────────────────────── */
+function renderGrid(gridId, scans){
+  const g = document.getElementById(gridId);
+  if(!scans.length){ g.innerHTML=""; return; }
+  g.innerHTML = scans.map(s => {
+    const icon    = TYPE_ICON[s.type] || "📡";
+    const isLive  = !s.done;
+    const pct     = isLive ? Math.min(95, (s.event_count / Math.max(s.event_count+5, 50)) * 100) : 100;
+    const srcCol  = srcColor(s.source);
+    const fCls    = s.findings >= 10 ? 'm-findings-hi' : s.findings > 0 ? 'm-findings' : 'm-findings-low';
+    return `
+    <div class="scan-card ${isLive?"active-card":"done-card"}">
+      <div class="sc-header">
+        <div class="sc-icon-wrap">
+          <div class="sc-icon">${icon}</div>
+          ${isLive ? '<div class="sc-ring"></div>' : ''}
+        </div>
+        <div class="sc-info">
+          <div class="sc-label" title="${esc(s.label)}">${esc(s.label)}</div>
+          <div class="sc-source" style="color:${srcCol}">${esc(s.source)} · ${esc(s.type||"—")}</div>
+        </div>
+        <div class="sc-badge ${isLive?"running":"done"}">${isLive?"● LIVE":"✓ DONE"}</div>
+      </div>
+      <div class="sc-target" title="${esc(s.target)}">${esc(s.target||"—")}</div>
+      <div class="sc-metrics">
+        <div class="sc-metric ${fCls}">
+          <div class="val">${s.findings}</div>
+          <div class="lbl">Findings</div>
+        </div>
+        <div class="sc-metric">
+          <div class="val">${s.event_count}</div>
+          <div class="lbl">Events</div>
+        </div>
+        <div class="sc-metric">
+          <div class="val">${fmtElapsed(s.elapsed)}</div>
+          <div class="lbl">Elapsed</div>
+        </div>
+      </div>
+      <div class="sc-progress">
+        <div class="sc-progress-fill" style="width:${pct}%;${isLive?'background:linear-gradient(90deg,var(--green),var(--green2))':'background:var(--border2)'}"></div>
+      </div>
+      <div class="sc-footer">
+        <div class="sc-footer-src">
+          <div class="sc-src-dot" style="background:${srcCol}"></div>
+          <span>${s.meta || esc(s.source)}</span>
+        </div>
+        ${!isLive
+          ? `<button class="btn-icon" style="font-size:10px;padding:3px 9px;border-radius:4px" onclick="openSummary(${JSON.stringify(s.id)})">
+               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+               Summary
+             </button>`
+          : `<span>${new Date(s.started_at*1000).toLocaleTimeString()}</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Activity Feed ──────────────────────────────── */
+function addFeedEntry(source, msg, scanId){
+  feedLines.unshift({ time: new Date().toLocaleTimeString(), source, msg, scanId: scanId||null });
+  if(feedLines.length > MAX_FEED) feedLines.length = MAX_FEED;
+  renderFeed();
+}
+
+function renderFeed(){
+  const el = document.getElementById("activity-log");
+  const fc = document.getElementById("feed-count");
+  if(fc) fc.textContent = feedLines.length;
+  if(!feedLines.length){
+    el.innerHTML = '<div class="timeline-line"></div><div style="padding:30px;text-align:center;color:var(--txt2);font-size:12px">Waiting for scan activity…</div>';
+    return;
+  }
+  const sc = srcClass;
+  el.innerHTML = '<div class="timeline-line"></div>' + feedLines.slice(0,80).map(f => {
+    const col = SRC_COLOR[f.source] || 'var(--blue)';
+    return `<div class="al-entry">
+      <div class="al-time">${f.time}</div>
+      <div class="al-dot" style="background:${col};border-color:var(--bg1)"></div>
+      <div class="al-body">
+        <span class="al-src ${sc(f.source)}">${f.source||"—"}</span>
+        <span class="al-msg">${esc(f.msg)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearFeed(){ feedLines=[]; renderFeed(); }
+
+/* ── Clear Completed ─────────────────────────────── */
+async function clearCompleted(){
+  const btn = document.getElementById("clear-btn");
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Clearing…`;
+  try{
+    const r = await fetch("/api/watchdog/clear", { method:"POST" });
+    const d = await r.json();
+    // Remove cleared scans from local store
+    Object.keys(scanStore).forEach(id => { if(scanStore[id].done) delete scanStore[id]; });
+    Object.keys(prevScans).forEach(id => { if(prevScans[id].done) delete prevScans[id]; });
+    toast(`✓ Cleared ${d.cleared} completed scan${d.cleared!==1?"s":""}`);
+    await fetchStatus();
+  }catch(e){
+    toast("⚠ Clear failed: " + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> Clear Completed`;
+  }
+}
+
+/* ── Summary Modal ───────────────────────────────── */
+function openSummary(scanId){
+  const s = scanStore[scanId];
+  if(!s) return;
+  const icon  = TYPE_ICON[s.type] || "📡";
+  const srcCol = srcColor(s.source);
+  const fCls  = s.findings >= 10 ? "accent-orange" : s.findings > 0 ? "accent-orange" : "";
+  const dur   = fmtElapsed(s.elapsed);
+  const evRate = s.elapsed > 0 ? (s.event_count / s.elapsed).toFixed(1) : "—";
+
+  // Timeline items — last 12 feed events for this scan
+  const feedForScan = feedLines.filter(f => f.scanId === scanId).slice(0,12);
+
+  document.getElementById("modal-icon").textContent  = icon;
+  document.getElementById("modal-title").textContent = s.label + " — " + (s.target || "—");
+
+  document.getElementById("modal-body").innerHTML = `
+    <div class="ms-section">
+      <div class="ms-label">Status</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="ms-status-badge done">✓ Completed</span>
+        <span style="font-size:11px;color:var(--txt2)">Started ${new Date(s.started_at*1000).toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div class="ms-section">
+      <div class="ms-label">Key Metrics</div>
+      <div class="ms-stat-grid">
+        <div class="ms-stat ${s.findings > 0 ? 'accent-orange' : ''}">
+          <div class="v">${s.findings}</div>
+          <div class="l">Findings</div>
+        </div>
+        <div class="ms-stat accent-blue">
+          <div class="v">${s.event_count}</div>
+          <div class="l">Events</div>
+        </div>
+        <div class="ms-stat accent-green">
+          <div class="v">${dur}</div>
+          <div class="l">Duration</div>
+        </div>
+      </div>
+      ${s.findings > 0 ? `
+      <div style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--txt2);margin-bottom:4px">
+          <span>Finding density</span>
+          <span>${(s.findings / Math.max(s.elapsed, 1) * 60).toFixed(1)} / min</span>
+        </div>
+        <div class="ms-finding-bar">
+          <div class="ms-finding-fill" style="width:${Math.min(100, s.findings * 5)}%"></div>
+        </div>
+      </div>` : ''}
+    </div>
+
+    <div class="ms-section">
+      <div class="ms-label">Details</div>
+      <div class="ms-row"><span class="key">Target</span><span class="val">${esc(s.target||"—")}</span></div>
+      <div class="ms-row"><span class="key">Tool / Type</span><span class="val">${esc(s.label)} <span style="color:var(--txt2);font-size:10px">(${esc(s.type||"—")})</span></span></div>
+      <div class="ms-row"><span class="key">Source</span><span class="val" style="color:${srcCol}">${esc(s.source)}</span></div>
+      <div class="ms-row"><span class="key">Summary</span><span class="val">${esc(s.meta||"—")}</span></div>
+      <div class="ms-row"><span class="key">Events / sec</span><span class="val">${evRate}</span></div>
+      <div class="ms-row"><span class="key">Scan ID</span><span class="val" style="color:var(--txt2);font-size:9.5px">${esc(s.id)}</span></div>
+    </div>
+
+    ${feedForScan.length ? `
+    <div class="ms-section">
+      <div class="ms-label">Activity Log</div>
+      <div class="ms-timeline">
+        ${feedForScan.map(f => `
+          <div class="ms-tl-row">
+            <div class="ms-tl-dot" style="background:${SRC_COLOR[f.source]||'var(--blue)'}"></div>
+            <div class="ms-tl-time">${f.time}</div>
+            <div class="ms-tl-msg">${esc(f.msg)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById("modal-backdrop").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal(e){
+  if(e && e.target !== document.getElementById("modal-backdrop") && e.target !== document.getElementById("modal-close")) return;
+  document.getElementById("modal-backdrop").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+
+/* ── Helpers ─────────────────────────────────────── */
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function fmtElapsed(sec){
+  sec = Math.round(sec||0);
+  if(sec < 60) return sec + "s";
+  const m = Math.floor(sec/60), s = sec%60;
+  if(m < 60) return m + "m" + (s?s+"s":"");
+  return Math.floor(m/60) + "h" + (m%60?(m%60)+"m":"");
+}
+
+function openMisc(e){
+  e.preventDefault();
+  window.open(`http://${location.hostname}:${MISC_PORT}`, "_blank", "noopener");
+}
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 3000);
+}
+
+/* ── Heatmap ─────────────────────────────────────── */
+let heatmapData = new Array(24).fill(0);
+
+function updateHeatmap(scans){
+  const now = Date.now()/1000;
+  heatmapData.fill(0);
+  scans.forEach(s => {
+    const age = Math.floor((now - s.started_at) / 3600);
+    if(age >= 0 && age < 24) heatmapData[23 - age] += 1 + (s.findings || 0);
+  });
+  const max = Math.max(1, ...heatmapData);
+  const grid = document.getElementById('heatmap-grid');
+  if(!grid) return;
+  grid.innerHTML = heatmapData.map((v,i) => {
+    const h = Math.max(2, (v/max)*56);
+    const intensity = v/max;
+    const bg = v > 0 ? `rgba(240,140,0,${0.15 + intensity*0.6})` : 'rgba(240,140,0,.06)';
+    const hour = (new Date(now*1000 - (23-i)*3600000)).getHours();
+    return `<div class="hm-bar" style="height:${h}px;background:${bg}"><div class="hm-tip">${hour}:00 — ${v} events</div></div>`;
+  }).join('');
+}
+
+/* ── Target Frequency ─────────────────────────────── */
+function updateTargetFreq(scans){
+  const freq = {};
+  scans.forEach(s => { if(s.target) freq[s.target] = (freq[s.target]||0) + 1; });
+  const sorted = Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0,6);
+  const el = document.getElementById('target-freq-list');
+  if(!el) return;
+  if(!sorted.length){ el.innerHTML = '<div style="color:var(--txt2);font-size:11px">No targets yet</div>'; return; }
+  const max = sorted[0][1];
+  el.innerHTML = sorted.map(([t,c]) =>
+    `<div class="tf-row"><div class="tf-target" title="${esc(t)}">${esc(t)}</div><div class="tf-track"><div class="tf-fill" style="width:${Math.round(c/max*100)}%"></div></div><div class="tf-count">${c}</div></div>`
+  ).join('');
+}
+
+/* ── Sound Notifications ─────────────────────────── */
+let soundEnabled = localStorage.getItem('wd_sound') !== 'off';
+const soundBtn = document.getElementById('sound-btn');
+if(!soundEnabled && soundBtn) soundBtn.classList.add('muted');
+
+function toggleSound(){
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('wd_sound', soundEnabled ? 'on' : 'off');
+  const btn = document.getElementById('sound-btn');
+  if(btn) btn.classList.toggle('muted', !soundEnabled);
+  toast(soundEnabled ? '🔊 Sound on' : '🔇 Sound off');
+}
+
+function playNotifSound(){
+  if(!soundEnabled) return;
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
+  }catch(e){}
+}
+
+/* ── Desktop Notifications ───────────────────────── */
+let notifPermission = Notification.permission || 'default';
+if(notifPermission === 'default') Notification.requestPermission().then(p => notifPermission = p);
+
+function desktopNotify(title, body){
+  if(notifPermission !== 'granted') return;
+  try{ new Notification(title, {body, icon:'🐾', silent:true}); }catch(e){}
+}
+
+/* ── Export Summary ──────────────────────────────── */
+function exportSummary(){
+  const scans = Object.values(scanStore);
+  if(!scans.length){ toast('⚠ No scans to export'); return; }
+  const lines = ['=== ZeekGlare WatchDog Summary ===', 'Exported: ' + new Date().toLocaleString(), ''];
+  const active = scans.filter(s=>!s.done);
+  const done = scans.filter(s=>s.done);
+  lines.push(`Total: ${scans.length} | Active: ${active.length} | Completed: ${done.length}`);
+  lines.push(`Total Findings: ${scans.reduce((a,s)=>a+(s.findings||0),0)}`, '');
+  if(active.length){ lines.push('--- ACTIVE ---'); active.forEach(s => lines.push(`  [LIVE] ${s.label} → ${s.target||'—'} (${s.findings} findings, ${fmtElapsed(s.elapsed)})`)); lines.push(''); }
+  if(done.length){ lines.push('--- COMPLETED ---'); done.forEach(s => lines.push(`  [DONE] ${s.label} → ${s.target||'—'} (${s.findings} findings, ${fmtElapsed(s.elapsed)})`)); }
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>toast('✓ Summary copied to clipboard'));
+}
+
+/* ── Keyboard Shortcuts ──────────────────────────── */
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if(e.key === 'r' || e.key === 'R') fetchStatus();
+  if(e.key === 'c' || e.key === 'C') clearCompleted();
+  if(e.key === 's' || e.key === 'S') toggleSound();
+  if(e.key === 'e' || e.key === 'E') exportSummary();
+});
+
+/* ── Cursor Glow ─────────────────────────────────── */
+(function(){
+  const glow = document.getElementById('wd-cursor-glow');
+  if(!glow) return;
+  let vis = false;
+  document.addEventListener('mousemove', e => {
+    glow.style.left = e.clientX + 'px'; glow.style.top = e.clientY + 'px';
+    if(!vis){ vis = true; glow.style.opacity = '1'; }
+  });
+  document.addEventListener('mouseleave', () => { vis = false; glow.style.opacity = '0'; });
+})();
+
+/* ── Live Elapsed Timers ─────────────────────────── */
+setInterval(() => {
+  document.querySelectorAll('.sc-live-timer').forEach(el => {
+    const started = parseFloat(el.dataset.started);
+    if(!started) return;
+    el.textContent = fmtElapsed(Date.now()/1000 - started);
+  });
+}, 1000);
+
+/* ── Patch renderDashboard for new features ─────── */
+const _origRender = renderDashboard;
+renderDashboard = function(d){
+  _origRender(d);
+  updateHeatmap(d.scans);
+  updateTargetFreq(d.scans);
+
+  // Sound + desktop notification for new completions
+  d.scans.forEach(s => {
+    const prev = prevScans[s.id];
+    if(prev && s.done && !prev.done){
+      playNotifSound();
+      desktopNotify('Scan Complete', `${s.label} → ${s.target||'—'} · ${s.findings} findings`);
+    }
+    const df = s.findings - ((prev && prev.findings) || 0);
+    if(prev && df >= 5) playNotifSound();
+  });
+};
+
+/* ── Patch renderGrid for live timer + user badge ── */
+const _origGrid = renderGrid;
+renderGrid = function(gridId, scans){
+  _origGrid(gridId, scans);
+  // Inject live timers and user badges
+  const g = document.getElementById(gridId);
+  if(!g) return;
+  scans.forEach((s,i) => {
+    const cards = g.querySelectorAll('.scan-card');
+    if(!cards[i]) return;
+    // Add live elapsed timer to active cards
+    if(!s.done){
+      const footer = cards[i].querySelector('.sc-footer');
+      const timeEl = footer ? footer.querySelector('span:last-child') : null;
+      if(timeEl){
+        timeEl.className = 'sc-live-timer';
+        timeEl.dataset.started = s.started_at;
+        timeEl.textContent = fmtElapsed(Date.now()/1000 - s.started_at);
+      }
+    }
+    // Add user badge
+    if(s.username){
+      const source = cards[i].querySelector('.sc-source');
+      if(source) source.innerHTML += ` · <span class="sc-user">${esc(s.username)}</span>`;
+    }
+  });
+};
+
+/* ── Init ─────────────────────────────────────────── */
+fetchStatus();
+setInterval(fetchStatus, POLL_MS);
+</script>
+</body>
+</html>
