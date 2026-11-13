@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+
+  # ── Flask API + All Dashboards ─────────────────────────────────────────────
+  app:
+    build: .
+    container_name: zeekglare-app
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=production
+      - ZEEKGLARE_ADMIN_PASSWORD
+    volumes:
+      - zeekglare-data:/app/data          # persist sessions, DB, recon output
+      - zeekglare-tools:/app/xploiter-tools
+    networks:
+      - zg-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Nginx reverse proxy ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: zeekglare-nginx
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - zg-net
+
+volumes:
+  zeekglare-data:
+  zeekglare-tools:
+
+networks:
+  zg-net:
+    driver: bridge
